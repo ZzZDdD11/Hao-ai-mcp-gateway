@@ -1,0 +1,1 @@
+docker stop Hao-ai-mcp-gateway
