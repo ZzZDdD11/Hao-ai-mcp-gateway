@@ -1,4 +1,4 @@
-package com.hao.ai.domain.session.service.impl;
+package com.hao.ai.domain.session.service.management;
 
 import com.hao.ai.domain.session.ISessionManagementService;
 import com.hao.ai.domain.session.model.valobj.SessionVO;
@@ -41,7 +41,7 @@ public class SessionManagementService implements ISessionManagementService {
         Sinks.Many<ServerSentEvent<String>> sink = Sinks.many().multicast().onBackpressureBuffer();
 
         // 发送端点信息，后续发到这进行通信
-        String messageEndpoint = "/" + gatewayId + "/mcp/message?sessionId=" + sessionId;
+        String messageEndpoint = "/api-gateway/" + gatewayId + "/mcp/message?sessionId=" + sessionId;
         sink.tryEmitNext(ServerSentEvent.<String>builder()
                 .event("endpoint")
                 .data(messageEndpoint)

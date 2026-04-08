@@ -45,6 +45,12 @@
             <groupId>com.hao.ai</groupId>
             <artifactId>Hao-ai-mcp-gateway-domain</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.hao.ai</groupId>
+            <artifactId>Hao-ai-mcp-gateway-case</artifactId>
+            <version>1.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -121,6 +121,11 @@
                 <artifactId>spring-boot-starter-webflux</artifactId>
                 <version>3.4.3</version>
             </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>1.1.0</version>
+            </dependency>
 
             <!-- 扳手工程；设计模式框架 -->
             <dependency>
