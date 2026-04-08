@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-import static org.springframework.expression.spel.SpelMessage.METHOD_NOT_FOUND;
+import static com.hao.ai.types.enums.ResponseCode.METHOD_NOT_FOUND;
 
 @Service
 @Slf4j
@@ -32,7 +32,7 @@ public class SessionMessageService implements ISessionMessageService {
 
             SessionMessageHandlerMethodEnum sessionMessageHandlerMethodEnum = SessionMessageHandlerMethodEnum.getByMethod(method);
             if (null == sessionMessageHandlerMethodEnum) {
-                throw new AppException(METHOD_NOT_FOUND.get(), METHOD_NOT_FOUND.getInfo());
+                throw new AppException(METHOD_NOT_FOUND.getCode(), METHOD_NOT_FOUND.getInfo());
             }
 
             String handlerName = sessionMessageHandlerMethodEnum.getHandlerName();
