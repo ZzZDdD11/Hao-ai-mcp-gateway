@@ -14,7 +14,7 @@ public class McpSessionService implements IMcpSessionService {
     DefaultMcpSessionFactory defaultMcpSessionFactory;
 
     @Override
-    public Flux<ServerSentEvent<String>> CreateMcpSession(String gatewayId) {
+    public Flux<ServerSentEvent<String>> CreateMcpSession(String gatewayId, String apikey) {
         StrategyHandler<String, DefaultMcpSessionFactory.DynamicContext, Flux<ServerSentEvent<String>>> strategyHandler = defaultMcpSessionFactory.strategyHandler();
         return null;
     }
