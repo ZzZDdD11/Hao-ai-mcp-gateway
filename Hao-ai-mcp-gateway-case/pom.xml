@@ -21,6 +21,7 @@
             <artifactId>Hao-ai-mcp-gateway-domain</artifactId>
         </dependency>
 
+
     </dependencies>
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
