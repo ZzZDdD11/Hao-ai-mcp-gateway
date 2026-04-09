@@ -20,6 +20,10 @@
             <groupId>com.hao.ai</groupId>
             <artifactId>Hao-ai-mcp-gateway-domain</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.hao.ai</groupId>
+            <artifactId>Hao-ai-mcp-gateway-api</artifactId>
+        </dependency>
 
 
     </dependencies>
