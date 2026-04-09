@@ -1,0 +1,1 @@
+package com.hao.ai.domain.auth.service;
