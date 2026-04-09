@@ -3,3 +3,7 @@ spring:
     name: Hao-ai-mcp-gateway-app
   profiles:
     active: dev
+
+mybatis:
+  mapper-locations: classpath:/mybatis/mapper/*.xml
+  config-location: classpath:/mybatis/config/mybatis-config.xml

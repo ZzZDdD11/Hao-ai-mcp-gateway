@@ -1,108 +1,212 @@
-/*
- Navicat Premium Data Transfer
+# ************************************************************
+# Sequel Ace SQL dump
+# 版本号： 20094
+#
+# https://sequel-ace.com/
+# https://github.com/Sequel-Ace/Sequel-Ace
+#
+# 主机: 127.0.0.1 (MySQL 8.0.42)
+# 数据库: ai_mcp_gateway_v2
+# 生成时间: 2026-03-21 07:10:55 +0000
+# ************************************************************
 
- Source Server         : 127.0.0.1
- Source Server Type    : MySQL
- Source Server Version : 50639
- Source Host           : localhost:3306
- Source Schema         : road-map
 
- Target Server Type    : MySQL
- Target Server Version : 50639
- File Encoding         : 65001
-
- Date: 15/07/2023 09:26:39
-*/
-
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE='NO_AUTO_VALUE_ON_ZERO', SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-CREATE database if NOT EXISTS `xfg_frame_archetype` default character set utf8mb4 collate utf8mb4_0900_ai_ci;
-use `xfg_frame_archetype`;
+CREATE database if NOT EXISTS `ai_mcp_gateway_v2` default character set utf8mb4 collate utf8mb4_0900_ai_ci;
+use `ai_mcp_gateway_v2`;
 
--- ----------------------------
--- Table structure for employee
--- ----------------------------
-DROP TABLE IF EXISTS `employee`;
-CREATE TABLE `employee` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `employee_number` varchar(16) NOT NULL DEFAULT '' COMMENT '雇员ID',
-  `employee_name` varchar(32) NOT NULL DEFAULT '' COMMENT '雇员姓名',
-  `employee_level` varchar(8) NOT NULL DEFAULT '' COMMENT '雇员级别',
-  `employee_title` varchar(16) NOT NULL DEFAULT '' COMMENT '雇员岗位Title',
-  `create_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_employee_number` (`employee_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8;
+# 转储表 mcp_gateway
+# ------------------------------------------------------------
 
--- ----------------------------
--- Records of employee
--- ----------------------------
-BEGIN;
-INSERT INTO `employee` VALUES (1, '10000001', 'sXvfDpsWnJdLsCVk64tJgw==', 'T-3', '中级工程师', '2023-07-14 15:26:26', '2023-07-14 15:26:26');
-INSERT INTO `employee` VALUES (2, '10000010', 'sXvfDpsWnJdLsCVk64tJgw==', 'T2', '见习工程师', '2023-07-14 15:34:40', '2023-07-14 15:34:40');
-INSERT INTO `employee` VALUES (3, '10000011', 'sXvfDpsWnJdLsCVk64tJgw==', 'T2', '见习工程师', '2023-07-14 15:34:40', '2023-07-14 15:34:40');
-INSERT INTO `employee` VALUES (4, '10000012', 'sXvfDpsWnJdLsCVk64tJgw==', 'T2', '见习工程师', '2023-07-14 15:34:40', '2023-07-14 15:34:40');
-INSERT INTO `employee` VALUES (5, '10000013', 'sXvfDpsWnJdLsCVk64tJgw==', 'T2', '见习工程师', '2023-07-14 15:34:40', '2023-07-14 15:34:40');
-INSERT INTO `employee` VALUES (6, '10000014', 'sXvfDpsWnJdLsCVk64tJgw==', 'T2', '见习工程师', '2023-07-14 15:34:40', '2023-07-14 15:34:40');
-INSERT INTO `employee` VALUES (9, '10000002', 'sXvfDpsWnJdLsCVk64tJgw==', 'T2', '见习工程师', '2023-07-15 07:42:52', '2023-07-15 07:42:52');
-INSERT INTO `employee` VALUES (22, '10000015', 'hMCgLG6WV3CsNBQ1UD6PEQ==', 'T2', '见习工程师', '2023-07-15 08:02:31', '2023-07-15 08:02:31');
-INSERT INTO `employee` VALUES (23, '10000016', 'hMCgLG6WV3CsNBQ1UD6PEQ==', 'T2', '见习工程师', '2023-07-15 08:02:31', '2023-07-15 08:02:31');
-INSERT INTO `employee` VALUES (24, '10000017', 'hMCgLG6WV3CsNBQ1UD6PEQ==', 'T2', '见习工程师', '2023-07-15 08:02:31', '2023-07-15 08:02:31');
-INSERT INTO `employee` VALUES (39, '10000022', 'GyG+V0r6mBCNsdusuKl03g==', 'T1', '实习工程师', '2023-07-15 09:17:49', '2023-07-15 09:17:49');
-COMMIT;
+DROP TABLE IF EXISTS `mcp_gateway`;
 
--- ----------------------------
--- Table structure for employee_salary
--- ----------------------------
-DROP TABLE IF EXISTS `employee_salary`;
-CREATE TABLE `employee_salary` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `employee_number` varchar(16) NOT NULL DEFAULT '' COMMENT '雇员编号',
-  `salary_total_amount` decimal(8,2) NOT NULL COMMENT '薪资总额',
-  `salary_merit_amount` decimal(8,2) NOT NULL COMMENT '绩效工资',
-  `salary_base_amount` decimal(8,2) NOT NULL COMMENT '基础工资',
-  `create_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  KEY `idx_employee_number` (`employee_number`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8;
+CREATE TABLE `mcp_gateway` (
+                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                               `gateway_id` varchar(64) NOT NULL COMMENT '网关唯一标识',
+                               `gateway_name` varchar(128) NOT NULL COMMENT '网关名称',
+                               `gateway_desc` varchar(512) DEFAULT NULL COMMENT '网关描述',
+                               `version` varchar(16) DEFAULT NULL COMMENT '网关版本',
+                               `auth` tinyint(1) DEFAULT '0' COMMENT '状态：0-不校验，1-强校验',
+                               `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：0-禁用，1-启用',
+                               `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                               `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                               PRIMARY KEY (`id`),
+                               UNIQUE KEY `uk_gateway_id` (`gateway_id`),
+                               KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='MCP网关配置表';
 
--- ----------------------------
--- Records of employee_salary
--- ----------------------------
-BEGIN;
-INSERT INTO `employee_salary` VALUES (1, '10000001', 5100.00, 1020.00, 4080.00, '2023-07-14 16:09:06', '2023-07-14 16:09:06');
-INSERT INTO `employee_salary` VALUES (2, '10000010', 5000.00, 1000.00, 4000.00, '2023-07-14 16:17:10', '2023-07-14 16:17:10');
-INSERT INTO `employee_salary` VALUES (3, '10000011', 5000.00, 1000.00, 4000.00, '2023-07-14 16:17:10', '2023-07-14 16:17:10');
-INSERT INTO `employee_salary` VALUES (4, '10000012', 5000.00, 1000.00, 4000.00, '2023-07-14 16:17:10', '2023-07-14 16:17:10');
-INSERT INTO `employee_salary` VALUES (5, '10000013', 5000.00, 1000.00, 4000.00, '2023-07-14 16:17:10', '2023-07-14 16:17:10');
-INSERT INTO `employee_salary` VALUES (6, '10000014', 5000.00, 1000.00, 4000.00, '2023-07-14 16:17:10', '2023-07-14 16:17:10');
-INSERT INTO `employee_salary` VALUES (8, '10000022', 100.00, 10.00, 90.00, '2023-07-15 09:17:49', '2023-07-15 09:17:49');
-COMMIT;
+LOCK TABLES `mcp_gateway` WRITE;
+/*!40000 ALTER TABLE `mcp_gateway` DISABLE KEYS */;
 
--- ----------------------------
--- Table structure for employee_salary_adjust
--- ----------------------------
-DROP TABLE IF EXISTS `employee_salary_adjust`;
-CREATE TABLE `employee_salary_adjust` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `employee_number` varchar(16) NOT NULL DEFAULT '' COMMENT '雇员编号',
-  `adjust_order_id` varchar(32) NOT NULL DEFAULT '' COMMENT '调薪单号',
-  `adjust_total_amount` decimal(8,2) NOT NULL COMMENT '总额调薪',
-  `adjust_base_amount` decimal(8,2) NOT NULL COMMENT '基础调薪',
-  `adjust_merit_amount` decimal(8,2) NOT NULL COMMENT '绩效调薪',
-  `create_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_order_id` (`adjust_order_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+INSERT INTO `mcp_gateway` (`id`, `gateway_id`, `gateway_name`, `gateway_desc`, `version`, `auth`, `status`, `create_time`, `update_time`)
+VALUES
+    (1,'gateway_001','员工信息查询网关','用于查询公司员工信息的MCP网关','1.0.0',1,1,'2026-01-02 13:10:19','2026-02-24 13:43:59'),
+    (2,'gateway_002','员工信息查询网关','用于查询公司员工信息的MCP网关','1.0.0',0,1,'2026-03-21 13:36:54','2026-03-21 13:37:08'),
+    (3,'gateway_003','员工信息查询网关','用于查询公司员工信息的MCP网关','1.0.0',0,1,'2026-03-21 15:08:38','2026-03-21 15:08:46');
 
--- ----------------------------
--- Records of employee_salary_adjust
--- ----------------------------
-BEGIN;
-INSERT INTO `employee_salary_adjust` VALUES (1, '10000001', '109089990198888811', 1000.00, 800.00, 200.00, '2023-07-14 16:55:53', '2023-07-14 16:55:53');
-INSERT INTO `employee_salary_adjust` VALUES (2, '10000001', '100908977676001', 100.00, 20.00, 80.00, '2023-07-14 21:57:39', '2023-07-14 21:57:39');
-COMMIT;
+/*!40000 ALTER TABLE `mcp_gateway` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+# 转储表 mcp_gateway_auth
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `mcp_gateway_auth`;
+
+CREATE TABLE `mcp_gateway_auth` (
+                                    `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                    `gateway_id` varchar(64) NOT NULL COMMENT '网关ID',
+                                    `api_key` varchar(128) DEFAULT NULL COMMENT 'API密钥',
+                                    `rate_limit` int DEFAULT '1000' COMMENT '速率限制（次/小时）',
+                                    `expire_time` datetime DEFAULT NULL COMMENT '过期时间',
+                                    `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：0-禁用，1-启用',
+                                    `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                    `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                    PRIMARY KEY (`id`),
+                                    UNIQUE KEY `uq_api_key` (`api_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户网关权限表';
+
+LOCK TABLES `mcp_gateway_auth` WRITE;
+/*!40000 ALTER TABLE `mcp_gateway_auth` DISABLE KEYS */;
+
+INSERT INTO `mcp_gateway_auth` (`id`, `gateway_id`, `api_key`, `rate_limit`, `expire_time`, `status`, `create_time`, `update_time`)
+VALUES
+    (1,'gateway_001','RS590LKPOD8877DDLMFKS4',1000,'2029-01-02 16:44:19',1,'2026-01-02 16:44:19','2026-01-02 16:44:34'),
+    (2,'gateway_001','gw-Otg00s8E5eqMuBiXnxckSHJc',10,'2026-02-22 06:03:24',1,'2026-02-22 14:03:24','2026-02-23 09:22:40'),
+    (4,'gateway_001','gw-lf3HFzlJCdnrYl20oHbd5lJQxE7GWz8wjsSgjDZfctJNV8s5',3600,'2099-02-24 07:05:45',1,'2026-02-22 14:05:44','2026-02-25 13:21:48'),
+    (5,'gateway_001','gw-SP0i5ztXV4QxSmau0GbuH1NNW4A0MEipBhklEeQ15cgUA2kI',10,'2026-02-24 10:08:12',1,'2026-02-22 18:08:11','2026-02-23 09:22:41'),
+    (6,'gateway_001','gw-o4L3EUQRsu5XHUU9EfKuDC3op6znKtCFRs34DFBVjoBIYXyv',10,'2026-02-24 10:08:27',1,'2026-02-22 18:08:27','2026-02-23 09:22:42'),
+    (7,'gateway_001','gw-GPJBQHFeBWVMSGASFii5xtsmlHF5SjURFwh7C7yGRP3UtVoy',10,'2026-02-25 01:23:57',1,'2026-02-23 09:23:57','2026-02-23 09:23:57');
+
+/*!40000 ALTER TABLE `mcp_gateway_auth` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+# 转储表 mcp_gateway_tool
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `mcp_gateway_tool`;
+
+CREATE TABLE `mcp_gateway_tool` (
+                                    `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '自增ID',
+                                    `gateway_id` varchar(64) NOT NULL COMMENT '网关ID',
+                                    `tool_id` bigint NOT NULL COMMENT '工具ID',
+                                    `tool_name` varchar(128) NOT NULL COMMENT 'MCP工具名称（如：JavaSDKMCPClient_getCompanyEmployee）',
+                                    `tool_type` varchar(32) NOT NULL DEFAULT 'function' COMMENT '工具类型：function/resource',
+                                    `tool_description` varchar(512) NOT NULL COMMENT '工具描述',
+                                    `tool_version` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '工具版本',
+                                    `protocol_id` bigint NOT NULL COMMENT '协议ID',
+                                    `protocol_type` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'http' COMMENT '协议类型；http、dubbo、rabbitmq',
+                                    `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                    `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                    PRIMARY KEY (`id`),
+                                    UNIQUE KEY `uq_tool_name` (`gateway_id`,`tool_name`),
+                                    UNIQUE KEY `uq_tool_id` (`tool_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+LOCK TABLES `mcp_gateway_tool` WRITE;
+/*!40000 ALTER TABLE `mcp_gateway_tool` DISABLE KEYS */;
+
+INSERT INTO `mcp_gateway_tool` (`id`, `gateway_id`, `tool_id`, `tool_name`, `tool_type`, `tool_description`, `tool_version`, `protocol_id`, `protocol_type`, `create_time`, `update_time`)
+VALUES
+    (1,'gateway_001',1,'JavaSDKMCPClient_getCompanyEmployee','function','获取公司雇员信息','1.0.0',83666188,'http','2026-02-01 19:12:44','2026-03-13 11:44:49'),
+    (3,'gateway_002',4904,'JavaSDKMCPClient_getCompanyEmployee','function','获取公司雇员信息','1.0.0',83666188,'http','2026-03-21 13:39:25','2026-03-21 13:39:25'),
+    (4,'gateway_003',2752,'JavaSDKMCPClient_getCompanyEmployee','function','获取公司雇员信息','1.0.0',83666188,'dubbo','2026-03-21 15:08:59','2026-03-21 15:09:57');
+
+/*!40000 ALTER TABLE `mcp_gateway_tool` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+# 转储表 mcp_protocol_http
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `mcp_protocol_http`;
+
+CREATE TABLE `mcp_protocol_http` (
+                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                     `protocol_id` bigint NOT NULL COMMENT '协议ID',
+                                     `http_url` varchar(512) NOT NULL COMMENT 'HTTP接口地址',
+                                     `http_method` varchar(16) NOT NULL DEFAULT 'POST' COMMENT 'HTTP请求方法：GET/POST/PUT/DELETE',
+                                     `http_headers` text COMMENT 'HTTP请求头（JSON格式）',
+                                     `timeout` int DEFAULT '30000' COMMENT '超时时间（毫秒）',
+                                     `retry_times` tinyint DEFAULT '0' COMMENT '重试次数',
+                                     `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态：0-禁用，1-启用',
+                                     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                     PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='MCP工具注册表';
+
+LOCK TABLES `mcp_protocol_http` WRITE;
+/*!40000 ALTER TABLE `mcp_protocol_http` DISABLE KEYS */;
+
+INSERT INTO `mcp_protocol_http` (`id`, `protocol_id`, `http_url`, `http_method`, `http_headers`, `timeout`, `retry_times`, `status`, `create_time`, `update_time`)
+VALUES
+    (1,1,'http://localhost:8701/api/v1/mcp/get_company_employee','post','{\"Content-Type\": \"application/json\"}',30000,0,1,'2026-01-02 13:10:19','2026-02-01 19:14:57'),
+    (3,2,'http://localhost:8701/api/v1/mcp/query-by-id','get','{\"Content-Type\": \"application/json\"}',30000,0,1,'2026-01-02 13:10:19','2026-02-01 19:14:58'),
+    (6,83666188,'http://localhost:8701/api/v1/mcp/get_company_employee','post','{\"Content-Type\":\"application/json\"}',30000,3,1,'2026-03-13 11:43:43','2026-03-13 11:43:43');
+
+/*!40000 ALTER TABLE `mcp_protocol_http` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+# 转储表 mcp_protocol_mapping
+# ------------------------------------------------------------
+
+DROP TABLE IF EXISTS `mcp_protocol_mapping`;
+
+CREATE TABLE `mcp_protocol_mapping` (
+                                        `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                        `protocol_id` bigint NOT NULL COMMENT '工具ID',
+                                        `mapping_type` varchar(32) NOT NULL COMMENT '映射类型：request-请求参数映射，response-响应数据映射',
+                                        `parent_path` varchar(256) DEFAULT NULL COMMENT '父级路径（如：xxxRequest01，用于构建嵌套结构，根节点为NULL）',
+                                        `field_name` varchar(128) NOT NULL COMMENT '字段名称（如：city、company、name）',
+                                        `mcp_path` varchar(256) NOT NULL COMMENT 'MCP完整路径（如：xxxRequest01.city、xxxRequest01.company.name）',
+                                        `mcp_type` varchar(32) NOT NULL COMMENT 'MCP数据类型：string/number/boolean/object/array',
+                                        `mcp_desc` varchar(512) DEFAULT NULL COMMENT 'MCP字段描述',
+                                        `is_required` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否必填：0-否，1-是（用于生成required数组）',
+                                        `sort_order` int DEFAULT '0' COMMENT '排序顺序（同级字段排序）',
+                                        `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+                                        `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+                                        PRIMARY KEY (`id`),
+                                        KEY `idx_mapping_type` (`mapping_type`),
+                                        KEY `idx_parent_path` (`parent_path`),
+                                        KEY `idx_mcp_path` (`mcp_path`),
+                                        KEY `idx_sort_order` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='MCP映射配置表';
+
+LOCK TABLES `mcp_protocol_mapping` WRITE;
+/*!40000 ALTER TABLE `mcp_protocol_mapping` DISABLE KEYS */;
+
+INSERT INTO `mcp_protocol_mapping` (`id`, `protocol_id`, `mapping_type`, `parent_path`, `field_name`, `mcp_path`, `mcp_type`, `mcp_desc`, `is_required`, `sort_order`, `create_time`, `update_time`)
+VALUES
+    (1,1,'request',NULL,'xxxRequest01','xxxRequest01','object',NULL,1,1,'2026-01-02 13:10:19','2026-02-01 19:45:59'),
+    (2,1,'request','xxxRequest01','city','xxxRequest01.city','string','城市名称,如果是中文汉字请先转换为汉语拼音,例如北京:beijing',1,1,'2026-01-02 13:10:19','2026-02-01 19:46:00'),
+    (3,1,'request','xxxRequest01','company','xxxRequest01.company','object','公司信息,如果是中文汉字请先转换为汉语拼音,例如北京:jd/alibaba',1,2,'2026-01-02 13:10:19','2026-02-01 19:46:01'),
+    (4,1,'request','xxxRequest01.company','name','xxxRequest01.company.name','string','公司名称',1,1,'2026-01-02 13:10:19','2026-02-01 19:46:01'),
+    (5,1,'request','xxxRequest01.company','type','xxxRequest01.company.type','string','公司类型',1,2,'2026-01-02 13:10:19','2026-02-01 19:46:02'),
+    (18,83666188,'request',NULL,'xxxRequest01','xxxRequest01','object','公司员工信息查询请求',1,1,'2026-03-13 11:43:43','2026-03-13 11:43:43'),
+    (19,83666188,'request','xxxRequest01','city','xxxRequest01.city','string','城市名称(拼音),例如: beijing',1,1,'2026-03-13 11:43:43','2026-03-13 11:43:43'),
+    (20,83666188,'request','xxxRequest01','company','xxxRequest01.company','object','公司信息',1,2,'2026-03-13 11:43:43','2026-03-13 11:43:43'),
+    (21,83666188,'request','xxxRequest01.company','deep','xxxRequest01.company.deep','object','测试',1,1,'2026-03-13 11:43:43','2026-03-13 11:43:43'),
+    (22,83666188,'request','xxxRequest01.company.deep','x01','xxxRequest01.company.deep.x01','string','测试',1,1,'2026-03-13 11:43:43','2026-03-13 11:43:43'),
+    (23,83666188,'request','xxxRequest01.company','name','xxxRequest01.company.name','string','公司名称',1,2,'2026-03-13 11:43:43','2026-03-13 11:43:43'),
+    (24,83666188,'request','xxxRequest01.company','type','xxxRequest01.company.type','string','公司类型',1,3,'2026-03-13 11:43:43','2026-03-13 11:43:43');
+
+/*!40000 ALTER TABLE `mcp_protocol_mapping` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
+
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

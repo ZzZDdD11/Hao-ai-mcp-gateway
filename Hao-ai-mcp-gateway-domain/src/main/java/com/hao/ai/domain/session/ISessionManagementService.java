@@ -1,5 +1,4 @@
 package com.hao.ai.domain.session;
-
 import com.hao.ai.domain.session.model.valobj.SessionVO;
 
 public interface ISessionManagementService {
