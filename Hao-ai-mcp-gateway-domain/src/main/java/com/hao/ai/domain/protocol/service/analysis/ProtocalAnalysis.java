@@ -23,6 +23,7 @@ public class ProtocalAnalysis implements IProtocolAnalysis {
      */
     private final Map<String, IProtocalAnalysisStrategy> protocolAnalysisStrategyMap;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public ProtocalAnalysis(Map<String, IProtocalAnalysisStrategy> protocolAnalysisStrategyMap) {
         this.protocolAnalysisStrategyMap = protocolAnalysisStrategyMap;
     }

@@ -10,6 +10,7 @@ import java.util.List;
 @Data
 public class HTTPProtocolVO {
 
+    private Long protocolId;
     private String httpUrl;
     private String httpHeaders;
     private String httpMethod;
