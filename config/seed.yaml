@@ -1,0 +1,147 @@
+# PM Dashboard Agent 工具集 — 种子数据
+# 首次部署执行: python -m src.cli seed
+
+gateways:
+  - id: gd10090
+    name: "PM Dashboard Agent 工具集"
+    description: "App 研发生命周期数据查询与分析"
+    tools:
+      - name: get_status
+        description: |
+          【每次对话必调】获取当前版本全局状态概览。
+          返回：版本号、Bug/需求/测试概况、阶段时间线。
+          即使你认为问题不需要数据，也应先调此工具确认上下文。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/status"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+              description: "版本号，如 Appv9.9.0"
+            platform:
+              type: string
+              default: mobile
+              description: "平台，mobile 或 desktop"
+          required: [version]
+
+      - name: query_bugs
+        description: |
+          查询当前版本 Bug 统计：总数、严重程度分布（致命/严重/一般/轻微）、
+          模块 Top10 排行及各自数量。不返回单个 Bug 明细。
+          若需要趋势或解决速率，调用 trend_bugs。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/bugs"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+              description: "版本号"
+            platform:
+              type: string
+              default: mobile
+          required: [version]
+
+      - name: compare_bugs
+        description: |
+          对比当前版本与历史版本的 Bug 指标，返回偏离百分比和评估结论。
+          evaluation 字段：below_normal | normal | above_normal。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/bugs/compare"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+            platform:
+              type: string
+              default: mobile
+            history_count:
+              type: integer
+              default: 3
+              description: "对比的历史版本数量"
+          required: [version]
+
+      - name: trend_bugs
+        description: |
+          查询当前版本最近 N 天 Bug 日切面趋势：每日流入、解决、存量、严重 Bug 数。
+          根据每日净变化和解决速率判断收敛趋势。若某日无快照则返回 null。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/bugs/trend"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+            platform:
+              type: string
+              default: mobile
+            days:
+              type: integer
+              default: 7
+              description: "查询最近多少天"
+          required: [version]
+
+      - name: query_stories
+        description: |
+          查询当前版本需求统计：总数、已完成数、逾期数、完成率。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/stories"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+            platform:
+              type: string
+              default: mobile
+          required: [version]
+
+      - name: compare_stories
+        description: |
+          对比当前版本与历史版本的需求完成度，返回历史平均完成率。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/stories/compare"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+            platform:
+              type: string
+              default: mobile
+            history_count:
+              type: integer
+              default: 3
+          required: [version]
+
+      - name: query_tests
+        description: |
+          查询当前版本测试执行进度：各阶段用例总数、已执行数、执行率。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/tests"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+            platform:
+              type: string
+              default: mobile
+          required: [version]
+
+      - name: query_release
+        description: |
+          查询当前版本发布包状态和阶段时间线。
+        http_method: GET
+        http_url: "http://pm-dashboard:8765/api/agent-data/release"
+        param_schema:
+          type: object
+          properties:
+            version:
+              type: string
+            platform:
+              type: string
+              default: mobile
+          required: [version]
