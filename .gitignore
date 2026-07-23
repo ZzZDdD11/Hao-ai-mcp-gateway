@@ -39,5 +39,5 @@ build/
 
 ### Python (experimental) ###
 .venv/
-src/
-data/
+/src/
+/data/

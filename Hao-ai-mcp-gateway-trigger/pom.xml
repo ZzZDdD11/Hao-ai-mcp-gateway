@@ -51,6 +51,11 @@
             <version>1.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.hao.ai</groupId>
+            <artifactId>Hao-ai-mcp-gateway-infrastructure</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hao AI MCP Gateway · 控制台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg-elevated: #101018;
+  --bg-card: #14141e;
+  --bg-hover: #1c1c2a;
+  --border: #222232;
+  --border-bright: #2e2e42;
+  --text: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #6b6b80;
+  --accent: #d4a574;
+  --accent-glow: rgba(212,165,116,0.15);
+  --accent-hover: #e0b88a;
+  --teal: #5eb3a6;
+  --teal-glow: rgba(94,179,166,0.12);
+  --danger: #e57373;
+  --danger-glow: rgba(229,115,115,0.12);
+  --code: #c4b5fd;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,0.6);
+  --font-display: 'Bricolage Grotesque', serif;
+  --font-body: 'Hanken Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(212,165,116,0.04) 0%, transparent 40%),
+    radial-gradient(circle at 80% 100%, rgba(94,179,166,0.03) 0%, transparent 40%);
+}
+
+/* 噪点纹理 */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ====== 侧边导航 ====== */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 240px;
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.sidebar-brand {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand h1 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.sidebar-brand p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar-brand .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  margin-right: 6px;
+  box-shadow: 0 0 8px var(--teal);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+  border: none;
+  background: none;
+  text-align: left;
+  width: 100%;
+  font-family: var(--font-body);
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 20px;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.nav-icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.sidebar-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* ====== 主内容区 ====== */
+.main {
+  margin-left: 240px;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.page-header {
+  padding: 32px 40px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: fadeInDown 0.5s ease;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.page-content {
+  padding: 32px 40px;
+  animation: fadeIn 0.4s ease 0.1s both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== 按钮 ====== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #1a1a1a;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-bright);
+}
+.btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger-glow);
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.btn-danger:hover {
+  background: var(--danger-glow);
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+/* ====== 表格 ====== */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  padding: 14px 20px;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+
+tr:hover td { background: var(--bg-hover); }
+
+.mono { font-family: var(--font-mono); font-size: 12px; }
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.tag-active { background: var(--teal-glow); color: var(--teal); }
+.tag-inactive { background: rgba(107,107,128,0.15); color: var(--text-muted); }
+
+/* ====== 模态框 ====== */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(5,5,10,0.7);
+  backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header {
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.modal-body { padding: 24px 28px; }
+
+.modal-footer {
+  padding: 16px 28px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* ====== 表单 ====== */
+.form-group { margin-bottom: 20px; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 0.03em;
+}
+
+.form-input, .form-textarea, .form-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.form-textarea {
+  min-height: 200px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ====== 空状态 ====== */
+.empty-state {
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--text-muted);
+}
+
+.empty-state svg {
+  width: 48px; height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.empty-state p {
+  font-size: 14px;
+}
+
+/* ====== 加载 ====== */
+.loading {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--border-bright);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ====== Toast ====== */
+.toast {
+  position: fixed;
+  bottom: 32px; right: 32px;
+  padding: 14px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 300;
+  animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toast-success { background: var(--teal); color: #0a0a0f; }
+.toast-error { background: var(--danger); color: #fff; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== 协议导入特殊样式 ====== */
+.import-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.import-preview {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: auto;
+  max-height: 200px;
+  line-height: 1.6;
+}
+
+.import-preview .key { color: var(--accent); }
+.import-preview .str { color: var(--teal); }
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .sidebar { width: 60px; }
+  .sidebar-brand h1, .sidebar-brand p, .nav-item span, .sidebar-footer { display: none; }
+  .main { margin-left: 60px; }
+  .page-header, .page-content { padding-left: 20px; padding-right: 20px; }
+  .import-area { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- 侧边导航 -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <h1><span class="dot"></span>MCP Gateway</h1>
+    <p>Control Console</p>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-page="gateway">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+      <span>网关管理</span>
+    </button>
+    <button class="nav-item" data-page="protocol">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
+      <span>协议导入</span>
+    </button>
+    <button class="nav-item" data-page="tool">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.1 2.1-2.4-2.4z"/></svg>
+      <span>工具管理</span>
+    </button>
+    <button class="nav-item" data-page="auth">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <span>鉴权管理</span>
+    </button>
+  </nav>
+  <div class="sidebar-footer">v1.0 · :8092</div>
+</aside>
+
+<!-- 主内容 -->
+<main class="main">
+  <div id="page-content"></div>
+</main>
+
+<!-- 模态框 -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const API = window.location.origin.startsWith('file') ? 'http://localhost:8092' : '';
+
+// ====== 导航 ======
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPage(btn.dataset.page);
+  });
+});
+
+// ====== 页面渲染 ======
+function renderPage(page) {
+  const content = document.getElementById('page-content');
+  const pages = {
+    gateway: { title: '网关管理', subtitle: '管理 MCP 网关实例，每个网关对应一组工具集', render: renderGateway },
+    protocol: { title: '协议导入', subtitle: '上传 Swagger/OpenAPI JSON，自动解析为 MCP 工具协议', render: renderProtocol },
+    tool: { title: '工具管理', subtitle: '将协议绑定到网关工具，形成可调用的 MCP 工具函数', render: renderTool },
+    auth: { title: '鉴权管理', subtitle: '管理 API Key 与调用限流，控制网关访问权限', render: renderAuth },
+  };
+  const cfg = pages[page];
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">${cfg.title}</div>
+        <div class="page-subtitle">${cfg.subtitle}</div>
+      </div>
+      <div id="page-actions"></div>
+    </div>
+    <div class="page-content" id="page-body"></div>
+  `;
+  cfg.render();
+}
+
+// ====== 网关管理 ======
+async function renderGateway() {
+  const body = document.getElementById('page-body');
+  const actions = document.getElementById('page-actions');
+  actions.innerHTML = `<button class="btn btn-primary" onclick="showGatewayModal()">+ 新建网关</button>`;
+  body.innerHTML = `<div class="table-wrap"><table><thead><tr><th>网关 ID</th><th>名称</th><th>描述</th><th>版本</th><th>鉴权</th><th>状态</th><th>操作</th></tr></thead><tbody id="gw-tbody"><tr><td colspan="7" style="text-align:center;padding:40px"><span class="loading"></span></td></tr></tbody></table></div>`;
+  try {
+    const res = await fetch(`${API}/api/admin/gateway/list`).then(r => r.json());
+    const tbody = document.getElementById('gw-tbody');
+    if (!res.data || res.data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><p>暂无网关，点击右上角新建</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = res.data.map(g => `
+      <tr>
+        <td class="mono">${g.gatewayId}</td>
+        <td>${g.gatewayName}</td>
+        <td style="color:var(--text-secondary)">${g.gatewayDesc || '—'}</td>
+        <td class="mono">${g.version || '—'}</td>
+        <td>${g.auth ? '<span class="tag tag-active">强校验</span>' : '<span class="tag tag-inactive">不校验</span>'}</td>
+        <td>${g.status ? '<span class="tag tag-active">启用</span>' : '<span class="tag tag-inactive">禁用</span>'}</td>
+        <td><button class="btn btn-danger" onclick="deleteGateway('${g.gatewayId}')">禁用</button></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger)">加载失败：${e.message}</td></tr>`;
+  }
+}
+
+function showGatewayModal() {
+  showModal(`
+    <div class="modal-header"><div class="modal-title">新建网关</div></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">网关 ID</label><input class="form-input" id="m-gatewayId" placeholder="如 gateway_001" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">网关名称</label><input class="form-input" id="m-gatewayName" placeholder="如 PM Dashboard 工具网关" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">描述（可选）</label><input class="form-input" id="m-gatewayDesc" placeholder="网关用途说明"></div>
+      <div class="form-group"><label class="form-label">版本（可选）</label><input class="form-input" id="m-version" placeholder="1.0.0" value="1.0.0"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="createGateway()">创建</button></div>
+  `);
+}
+
+async function createGateway() {
+  const gatewayId = document.getElementById('m-gatewayId').value.trim();
+  const gatewayName = document.getElementById('m-gatewayName').value.trim();
+  if (!gatewayId || !gatewayName) { toast('请填写网关 ID 和名称', 'error'); return; }
+  try {
+    const params = new URLSearchParams({ gatewayId, gatewayName });
+    const desc = document.getElementById('m-gatewayDesc').value.trim();
+    const ver = document.getElementById('m-version').value.trim();
+    if (desc) params.set('gatewayDesc', desc);
+    if (ver) params.set('version', ver);
+    const res = await fetch(`${API}/api/admin/gateway/config?${params}`, { method: 'POST' }).then(r => r.json());
+    if (res.code === '0000') { closeModal(); toast('网关创建成功'); renderGateway(); }
+    else { toast(res.info || '创建失败', 'error'); }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteGateway(gatewayId) {
+  if (!confirm(`确认禁用网关 ${gatewayId}？`)) return;
+  try {
+    await fetch(`${API}/api/admin/gateway/${gatewayId}`, { method: 'DELETE' });
+    toast('网关已禁用'); renderGateway();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ====== 协议导入 ======
+function renderProtocol() {
+  const body = document.getElementById('page-body');
+  const actions = document.getElementById('page-actions');
+  actions.innerHTML = '';
+  body.innerHTML = `
+    <div class="import-area">
+      <div>
+        <div class="form-group">
+          <label class="form-label">OpenAPI / Swagger JSON</label>
+          <textarea class="form-textarea" id="proto-json" placeholder='{"openapi":"3.0.0","servers":[{"url":"http://localhost:8000"}],"paths":{"/api/dashboard":{"post":{...}}},"components":{"schemas":{...}}}'></textarea>
+          <div class="form-hint">粘贴完整的 OpenAPI 3.0 JSON，需包含 servers / paths / components.schemas</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">导入的 endpoints（逗号分隔）</label>
+          <input class="form-input" id="proto-endpoints" placeholder="/api/dashboard, /api/stage6/timeseries">
+          <div class="form-hint">指定要导入的接口路径，多个用逗号分隔</div>
+        </div>
+        <button class="btn btn-primary" onclick="importProtocol()">解析并导入</button>
+      </div>
+      <div>
+        <label class="form-label">解析预览</label>
+        <div class="import-preview" id="proto-preview">导入后此处显示解析结果（url / method / 参数映射）</div>
+      </div>
+    </div>
+  `;
+}
+
+async function importProtocol() {
+  const jsonStr = document.getElementById('proto-json').value.trim();
+  const endpointsStr = document.getElementById('proto-endpoints').value.trim();
+  if (!jsonStr) { toast('请粘贴 OpenAPI JSON', 'error'); return; }
+  if (!endpointsStr) { toast('请填写 endpoints', 'error'); return; }
+
+  let openApiJson;
+  try { openApiJson = JSON.parse(jsonStr); }
+  catch(e) { toast('JSON 格式错误：' + e.message, 'error'); return; }
+
+  const endpoints = endpointsStr.split(',').map(s => s.trim()).filter(Boolean);
+
+  try {
+    const res = await fetch(`${API}/api/admin/protocol/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ openApiJson, endpoints })
+    }).then(r => r.json());
+
+    if (res.code === '0000' && res.data) {
+      toast(`导入成功，生成 ${res.data.length} 个协议`);
+      document.getElementById('proto-preview').innerHTML =
+        `<span style="color:var(--teal)">✓ 解析完成</span><br>protocolIds: ${res.data.map(id => `<span class="mono" style="color:var(--accent)">${id}</span>`).join(', ')}<br><br>接下来到「工具管理」将协议绑定为 MCP 工具`;
+    } else {
+      toast(res.info || '导入失败', 'error');
+    }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ====== 工具管理 ======
+async function renderTool() {
+  const body = document.getElementById('page-body');
+  const actions = document.getElementById('page-actions');
+  actions.innerHTML = `
+    <input class="form-input" id="tool-gateway-filter" placeholder="输入网关 ID 查询" style="width:200px;display:inline-block;margin-right:8px" onkeydown="if(event.key==='Enter')loadTools()">
+    <button class="btn btn-primary" onclick="loadTools()">查询</button>
+    <button class="btn btn-ghost" onclick="showToolModal()" style="margin-left:8px">+ 新建工具</button>
+  `;
+  body.innerHTML = `<div class="table-wrap"><table><thead><tr><th>工具 ID</th><th>工具名称</th><th>描述</th><th>协议 ID</th><th>类型</th><th>操作</th></tr></thead><tbody id="tool-tbody"><tr><td colspan="6"><div class="empty-state"><p>输入网关 ID 查询工具列表</p></div></td></tr></tbody></table></div>`;
+}
+
+async function loadTools() {
+  const gatewayId = document.getElementById('tool-gateway-filter').value.trim();
+  if (!gatewayId) { toast('请输入网关 ID', 'error'); return; }
+  const tbody = document.getElementById('tool-tbody');
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px"><span class="loading"></span></td></tr>`;
+  try {
+    const res = await fetch(`${API}/api/admin/tool/list?gatewayId=${gatewayId}`).then(r => r.json());
+    if (!res.data || res.data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>该网关下暂无工具</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = res.data.map(t => `
+      <tr>
+        <td class="mono">${t.toolId}</td>
+        <td>${t.toolName}</td>
+        <td style="color:var(--text-secondary)">${t.toolDescription || '—'}</td>
+        <td class="mono">${t.protocolId}</td>
+        <td><span class="tag tag-active">${t.protocolType}</span></td>
+        <td><button class="btn btn-danger" onclick="deleteTool(${t.toolId})">删除</button></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger)">加载失败：${e.message}</td></tr>`;
+  }
+}
+
+function showToolModal() {
+  showModal(`
+    <div class="modal-header"><div class="modal-title">新建工具</div></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">网关 ID</label><input class="form-input" id="m-tool-gatewayId" placeholder="如 gateway_001"></div>
+      <div class="form-group"><label class="form-label">工具名称</label><input class="form-input" id="m-toolName" placeholder="如 query_bugs（LLM 调用时用）"></div>
+      <div class="form-group"><label class="form-label">工具描述</label><input class="form-input" id="m-toolDescription" placeholder="告诉 LLM 这个工具做什么"></div>
+      <div class="form-group"><label class="form-label">协议 ID</label><input class="form-input" id="m-protocolId" placeholder="协议导入时返回的 protocolId" class="mono"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="createTool()">创建</button></div>
+  `);
+}
+
+async function createTool() {
+  const body = {
+    gatewayId: document.getElementById('m-tool-gatewayId').value.trim(),
+    toolName: document.getElementById('m-toolName').value.trim(),
+    toolDescription: document.getElementById('m-toolDescription').value.trim(),
+    protocolId: document.getElementById('m-protocolId').value.trim(),
+  };
+  if (!body.gatewayId || !body.toolName || !body.protocolId) { toast('请填写网关 ID、工具名称、协议 ID', 'error'); return; }
+  try {
+    const res = await fetch(`${API}/api/admin/tool`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(r => r.json());
+    if (res.code === '0000') { closeModal(); toast('工具创建成功'); loadTools(); }
+    else { toast(res.info || '创建失败', 'error'); }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteTool(toolId) {
+  if (!confirm(`确认删除工具 ${toolId}？`)) return;
+  try {
+    await fetch(`${API}/api/admin/tool/${toolId}`, { method: 'DELETE' });
+    toast('工具已删除'); loadTools();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ====== 鉴权管理 ======
+async function renderAuth() {
+  const body = document.getElementById('page-body');
+  const actions = document.getElementById('page-actions');
+  actions.innerHTML = `
+    <input class="form-input" id="auth-gateway-filter" placeholder="输入网关 ID 查询" style="width:200px;display:inline-block;margin-right:8px" onkeydown="if(event.key==='Enter')loadAuths()">
+    <button class="btn btn-primary" onclick="loadAuths()">查询</button>
+    <button class="btn btn-ghost" onclick="showAuthModal()" style="margin-left:8px">+ 生成 Key</button>
+  `;
+  body.innerHTML = `<div class="table-wrap"><table><thead><tr><th>ID</th><th>API Key</th><th>限流（次/小时）</th><th>过期时间</th><th>状态</th><th>操作</th></tr></thead><tbody id="auth-tbody"><tr><td colspan="6"><div class="empty-state"><p>输入网关 ID 查询鉴权列表</p></div></td></tr></tbody></table></div>`;
+}
+
+async function loadAuths() {
+  const gatewayId = document.getElementById('auth-gateway-filter').value.trim();
+  if (!gatewayId) { toast('请输入网关 ID', 'error'); return; }
+  const tbody = document.getElementById('auth-tbody');
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px"><span class="loading"></span></td></tr>`;
+  try {
+    const res = await fetch(`${API}/api/admin/auth/list?gatewayId=${gatewayId}`).then(r => r.json());
+    if (!res.data || res.data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p>该网关下暂无 API Key</p></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = res.data.map(a => `
+      <tr>
+        <td class="mono">${a.id}</td>
+        <td class="mono" style="color:var(--accent)">${a.apiKey}</td>
+        <td class="mono">${a.rateLimit}</td>
+        <td class="mono" style="color:var(--text-secondary)">${a.expireTime || '永久'}</td>
+        <td>${a.status ? '<span class="tag tag-active">启用</span>' : '<span class="tag tag-inactive">禁用</span>'}</td>
+        <td><button class="btn btn-danger" onclick="deleteAuth(${a.id})">吊销</button></td>
+      </tr>
+    `).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--danger)">加载失败：${e.message}</td></tr>`;
+  }
+}
+
+function showAuthModal() {
+  showModal(`
+    <div class="modal-header"><div class="modal-title">生成 API Key</div></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">网关 ID</label><input class="form-input" id="m-auth-gatewayId" placeholder="如 gateway_001"></div>
+      <div class="form-group"><label class="form-label">限流（次/小时）</label><input class="form-input" id="m-rateLimit" type="number" value="1000" placeholder="1000"></div>
+      <div class="form-hint">Key 生成后有效期为 1 年，请妥善保存</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="createAuth()">生成</button></div>
+  `);
+}
+
+async function createAuth() {
+  const gatewayId = document.getElementById('m-auth-gatewayId').value.trim();
+  const rateLimit = document.getElementById('m-rateLimit').value.trim() || 1000;
+  if (!gatewayId) { toast('请填写网关 ID', 'error'); return; }
+  try {
+    const params = new URLSearchParams({ gatewayId, rateLimit });
+    const res = await fetch(`${API}/api/admin/auth?${params}`, { method: 'POST' }).then(r => r.json());
+    if (res.code === '0000') {
+      closeModal();
+      toast(`API Key 已生成：${res.data.substring(0, 20)}...`);
+      loadAuths();
+    } else { toast(res.info || '生成失败', 'error'); }
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function deleteAuth(id) {
+  if (!confirm(`确认吊销此 API Key？`)) return;
+  try {
+    await fetch(`${API}/api/admin/auth/${id}`, { method: 'DELETE' });
+    toast('API Key 已吊销'); loadAuths();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ====== 模态框 ======
+function showModal(html) {
+  document.getElementById('modal').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ====== Toast ======
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// ====== 初始化 ======
+renderPage('gateway');
+</script>
+</body>
+</html>
