@@ -22,9 +22,6 @@ import java.util.Map;
  * implements：表示实现接口。
  * <p>
  * Jackson 注解用于控制 JSON 序列化和反序列化行为。
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/12/20 09:07
  */
 @Slf4j
 public final class McpSchemaVO {

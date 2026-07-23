@@ -4,10 +4,12 @@ import com.alibaba.fastjson.JSON;
 import com.hao.ai.api.IMcpGatewayService;
 import com.hao.ai.api.response.Response;
 import com.hao.ai.cases.mcp.IMcpSessionService;
+import com.hao.ai.cases.mcp.IMcpStreamableHttpService;
 import com.hao.ai.types.enums.ResponseCode;
 import com.hao.ai.types.exception.AppException;
 import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
@@ -28,6 +30,9 @@ public class McpGatewayController implements IMcpGatewayService {
 
     @Resource
     private IMcpSessionService mcpSessionService;
+
+    @Resource
+    private IMcpStreamableHttpService mcpStreamableHttpService;
 
 //    @Resource
 //    private IMcpMessageService mcpMessageService;
@@ -74,16 +79,51 @@ public class McpGatewayController implements IMcpGatewayService {
                                                        @RequestParam String sessionId,
                                                       @RequestParam("api_key") String apiKey,
                                                       @RequestBody String messageBody){
-        try {
-            log.info("处理 MCP SSE 消息，gatewayId:{} apiKey:{} sessionId:{} messageBody:{}", gatewayId, apiKey, sessionId, messageBody);
+        log.info("处理 MCP SSE 消息，gatewayId:{} apiKey:{} sessionId:{}", gatewayId, apiKey, sessionId);
+        return Mono.fromCallable(() ->
+                mcpSessionService.handleMessage(gatewayId, sessionId, apiKey, messageBody));
+    }
 
+    // ==================== Streamable HTTP Transport（MCP 2025-03-26）====================
 
-        } catch (Exception e){
-            log.error("处理 MCP SSE 消息失败，gatewayId:{} sessionId:{} messageBody:{}", gatewayId, sessionId, messageBody, e);
-            return Mono.empty();
-        }
-        return Mono.empty();
+    /**
+     * POST /{gatewayId}/mcp — 发送 JSON-RPC 消息（Streamable HTTP 核心端点）
+     * <p>
+     * initialize 不带 Mcp-Session-Id，其他请求必须带。
+     */
+    @PostMapping(value = "{gatewayId}/mcp", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<Object>> handleStreamablePost(
+            @PathVariable("gatewayId") String gatewayId,
+            @RequestHeader(value = "Mcp-Session-Id", required = false) String sessionId,
+            @RequestParam(value = "api_key", required = false) String apiKey,
+            @RequestBody String body) {
+        log.info("Streamable HTTP POST gatewayId:{} sessionId:{}", gatewayId, sessionId);
+        return Mono.fromCallable(() ->
+                mcpStreamableHttpService.handleMessage(gatewayId, sessionId, apiKey, body));
+    }
 
+    /**
+     * DELETE /{gatewayId}/mcp — 终止会话
+     */
+    @DeleteMapping("{gatewayId}/mcp")
+    public Mono<ResponseEntity<Object>> handleStreamableDelete(
+            @PathVariable("gatewayId") String gatewayId,
+            @RequestHeader("Mcp-Session-Id") String sessionId) {
+        log.info("Streamable HTTP DELETE gatewayId:{} sessionId:{}", gatewayId, sessionId);
+        return Mono.fromCallable(() ->
+                mcpStreamableHttpService.terminateSession(gatewayId, sessionId));
+    }
+
+    /**
+     * GET /{gatewayId}/mcp — 可选，服务端推送 SSE 流
+     * v1 不支持，返回 405 Method Not Allowed（规范允许）
+     */
+    @GetMapping(value = "{gatewayId}/mcp")
+    public Mono<ResponseEntity<Object>> handleStreamableGet(
+            @PathVariable("gatewayId") String gatewayId,
+            @RequestHeader(value = "Mcp-Session-Id", required = false) String sessionId) {
+        log.info("Streamable HTTP GET 暂不支持 gatewayId:{}", gatewayId);
+        return Mono.just(ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build());
     }
 
 }

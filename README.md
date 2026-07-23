@@ -77,7 +77,7 @@ Hao-ai-mcp-gateway
 ### 2）初始化数据库
 
 - 执行 SQL 脚本：
-  - `docs/dev-ops/mysql/sql/xfg-frame-archetype.sql`
+  - `docs/dev-ops/mysql/sql/ai-mcp-gateway.sql`
 - 默认库名示例：`ai_mcp_gateway_v2`
 
 ### 3）配置后端
@@ -202,4 +202,3 @@ SSE 入口样例：
 ## 致谢
 
 - 项目工程思想参考 DDD 与六边形架构实践。
-- 原始工程模版来源于小傅哥的工程体系，当前仓库已完成 MCP 网关方向的业务化演进。

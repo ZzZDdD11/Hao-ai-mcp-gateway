@@ -6,9 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 请求方法枚举策略
- *
- * @author xiaofuge bugstack.cn @小傅哥
- * 2025/12/20 09:00
  */
 @Slf4j
 @Getter

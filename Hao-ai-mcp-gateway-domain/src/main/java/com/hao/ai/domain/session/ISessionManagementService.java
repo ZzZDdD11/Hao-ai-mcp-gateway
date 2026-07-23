@@ -3,10 +3,17 @@ import com.hao.ai.domain.session.model.valobj.SessionVO;
 
 public interface ISessionManagementService {
     /**
-     * 创建回话
+     * 创建会话（SSE transport，带 SSE sink）
      * @return 会话配置
      */
     SessionVO createSession(String gatewayId, String apiKey);
+
+    /**
+     * 创建会话（Streamable HTTP transport，无 SSE sink）
+     * @param gatewayId 网关 ID
+     * @return 会话配置
+     */
+    SessionVO createStreamableSession(String gatewayId);
 
     /**
      * 删除回话

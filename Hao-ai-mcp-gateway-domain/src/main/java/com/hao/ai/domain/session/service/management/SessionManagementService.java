@@ -34,7 +34,7 @@ public class SessionManagementService implements ISessionManagementService {
 
     @Override
     public SessionVO createSession(String gatewayId, String apiKey) {
-        log.info("开始创建会话 gatewayId:{}", gatewayId);
+        log.info("开始创建 SSE 会话 gatewayId:{}", gatewayId);
 
         String sessionId = UUID.randomUUID().toString();
 
@@ -49,7 +49,19 @@ public class SessionManagementService implements ISessionManagementService {
 
         SessionVO sessionVO = new SessionVO(sessionId, sink);
         activeSessions.put(sessionId, sessionVO);
-        log.info("创建会话 ");
+        log.info("创建 SSE 会话 sessionId:{}", sessionId);
+
+        return sessionVO;
+    }
+
+    @Override
+    public SessionVO createStreamableSession(String gatewayId) {
+        log.info("开始创建 Streamable HTTP 会话 gatewayId:{}", gatewayId);
+
+        String sessionId = UUID.randomUUID().toString();
+        SessionVO sessionVO = new SessionVO(sessionId);
+        activeSessions.put(sessionId, sessionVO);
+        log.info("创建 Streamable HTTP 会话 sessionId:{}", sessionId);
 
         return sessionVO;
     }
@@ -62,10 +74,13 @@ public class SessionManagementService implements ISessionManagementService {
 
         sessionVO.markInactive();
 
-        try {
-            sessionVO.getSink().tryEmitComplete();
-        } catch (Exception e) {
-            log.warn("关闭会话Sink时出错:{}", e.getMessage());
+        // SSE transport 的会话需要关闭 sink；Streamable HTTP 无 sink 跳过
+        if (sessionVO.getSink() != null) {
+            try {
+                sessionVO.getSink().tryEmitComplete();
+            } catch (Exception e) {
+                log.warn("关闭会话Sink时出错:{}", e.getMessage());
+            }
         }
 
         log.info("移除会话:{},剩余活跃会话数:{}", sessionId, activeSessions.size());

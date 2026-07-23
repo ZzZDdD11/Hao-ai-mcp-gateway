@@ -41,10 +41,7 @@
 
     <developers>
         <developer>
-            <name>xiaofuge</name>
-            <email>184172133@qq.com</email>
-            <organization>fuzhengwei</organization>
-            <organizationUrl>https://github.com/fuzhengwei</organizationUrl>
+            <name>hazezhang</name>
         </developer>
     </developers>
 
@@ -138,7 +135,7 @@
                 <version>2.3.0</version>
             </dependency>
 
-            <!-- 扳手工程；设计模式框架 -->
+            <!-- 树形策略责任链框架 -->
             <dependency>
                 <groupId>cn.bugstack.wrench</groupId>
                 <artifactId>xfg-wrench-starter-design-framework</artifactId>

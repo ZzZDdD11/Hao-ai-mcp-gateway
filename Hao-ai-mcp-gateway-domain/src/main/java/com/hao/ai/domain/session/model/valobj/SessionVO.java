@@ -21,10 +21,16 @@ public class SessionVO {
     private String sessionId;
 
     /**
-     * SSE信道
-     * 服务端通过该 sink 向客户端推送流式信息
+     * SSE 信道（可选）
+     * SSE transport 用此 sink 向客户端推送流式信息；
+     * Streamable HTTP transport 无需长连接，该字段为 null
      */
     private Sinks.Many<ServerSentEvent<String>> sink;
+
+    /**
+     * 传输类型："sse" | "streamable_http"
+     */
+    private String transportType;
     /**
      * 会话创建时间
      */
@@ -38,9 +44,22 @@ public class SessionVO {
      */
     private volatile boolean active;
 
-    public  SessionVO(String sessionId, Sinks.Many<ServerSentEvent<String>> sink){
+    public SessionVO(String sessionId, Sinks.Many<ServerSentEvent<String>> sink){
         this.sessionId = sessionId;
         this.sink = sink;
+        this.transportType = "sse";
+        this.createTime = Instant.now();
+        this.lastAccessedTime = Instant.now();
+        this.active = true;
+    }
+
+    /**
+     * Streamable HTTP transport 专用构造（无 SSE sink）
+     */
+    public SessionVO(String sessionId){
+        this.sessionId = sessionId;
+        this.sink = null;
+        this.transportType = "streamable_http";
         this.createTime = Instant.now();
         this.lastAccessedTime = Instant.now();
         this.active = true;
