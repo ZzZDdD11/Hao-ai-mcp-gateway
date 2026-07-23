@@ -27,7 +27,7 @@ echo "  ✓ 容器已启动"
 # 等待后端就绪
 echo "[2/2] 等待后端服务就绪..."
 for i in $(seq 1 60); do
-  if curl -s http://localhost:8092/api/admin/gateway/list &>/dev/null; then
+  if curl -s http://localhost:8080/api/admin/gateway/list &>/dev/null; then
     echo "  ✓ 后端已就绪"
     break
   fi
@@ -41,9 +41,9 @@ echo ""
 echo "  ══════════════════════════════════════"
 echo "  部署完成！"
 echo ""
-echo "  前端管理后台:  http://localhost:9001"
-echo "  后端 API:      http://localhost:8092"
-echo "  MCP 端点:      http://localhost:8092/{gatewayId}/mcp"
+echo "  前端管理后台:  http://localhost"
+echo "  后端 API:      http://localhost:8080"
+echo "  MCP 端点:      http://localhost:8080/{gatewayId}/mcp"
 echo "  MySQL:         localhost:3306 (root / 12345678)"
 echo ""
 echo "  查看日志:  $DC logs -f"

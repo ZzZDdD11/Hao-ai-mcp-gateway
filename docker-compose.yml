@@ -40,7 +40,7 @@ services:
         --spring.datasource.username=root
         --spring.datasource.password=12345678
     ports:
-      - "8092:8092"
+      - "8080:8092"
     networks:
       - mcp-net
 
@@ -51,7 +51,7 @@ services:
     depends_on:
       - app
     ports:
-      - "9001:80"
+      - "80:80"
     volumes:
       - ./docs/dev-ops/ngnix/html:/usr/share/nginx/html:ro
       - ./docs/dev-ops/ngnix/nginx.conf:/etc/nginx/conf.d/default.conf:ro
