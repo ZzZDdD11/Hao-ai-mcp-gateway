@@ -50,10 +50,10 @@ public class AdminController {
     }
 
     @PostMapping("/gateway/config")
-    public Response<Boolean> gatewayConfig(@RequestParam String gatewayId,
-                                           @RequestParam String gatewayName,
-                                           @RequestParam(required = false) String gatewayDesc,
-                                           @RequestParam(required = false) String version) {
+    public Response<Boolean> gatewayConfig(@RequestParam("gatewayId") String gatewayId,
+                                           @RequestParam("gatewayName") String gatewayName,
+                                           @RequestParam(value = "gatewayDesc", required = false) String gatewayDesc,
+                                           @RequestParam(value = "version", required = false) String version) {
         GatewayPO po = new GatewayPO();
         po.setGatewayId(gatewayId);
         po.setGatewayName(gatewayName);
@@ -75,7 +75,7 @@ public class AdminController {
     // ==================== 工具管理 ====================
 
     @GetMapping("/tool/list")
-    public Response<List<ToolPO>> toolList(@RequestParam String gatewayId) {
+    public Response<List<ToolPO>> toolList(@RequestParam("gatewayId") String gatewayId) {
         return Response.<List<ToolPO>>builder()
                 .code(SUCCESS_CODE).info(SUCCESS_INFO)
                 .data(toolDao.queryByGatewayId(gatewayId))
@@ -108,7 +108,7 @@ public class AdminController {
     // ==================== 鉴权管理 ====================
 
     @GetMapping("/auth/list")
-    public Response<List<AuthPO>> authList(@RequestParam String gatewayId) {
+    public Response<List<AuthPO>> authList(@RequestParam("gatewayId") String gatewayId) {
         return Response.<List<AuthPO>>builder()
                 .code(SUCCESS_CODE).info(SUCCESS_INFO)
                 .data(authDao.queryByGatewayId(gatewayId))
@@ -116,8 +116,8 @@ public class AdminController {
     }
 
     @PostMapping("/auth")
-    public Response<String> createAuth(@RequestParam String gatewayId,
-                                       @RequestParam(defaultValue = "1000") Integer rateLimit) {
+    public Response<String> createAuth(@RequestParam("gatewayId") String gatewayId,
+                                       @RequestParam(value = "rateLimit", defaultValue = "1000") Integer rateLimit) {
         String apiKey = "gw-" + UUID.randomUUID().toString().replace("-", "");
         AuthPO po = new AuthPO();
         po.setGatewayId(gatewayId);
