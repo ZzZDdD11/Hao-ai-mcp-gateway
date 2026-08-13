@@ -18,6 +18,10 @@ public interface ToolDao {
             "VALUES (#{gatewayId}, #{toolId}, #{toolName}, #{toolType}, #{toolDescription}, #{toolVersion}, #{protocolId}, #{protocolType})")
     int insert(ToolPO po);
 
+    @Update("UPDATE mcp_gateway_tool SET tool_description = #{toolDescription}, protocol_id = #{protocolId} WHERE gateway_id = #{gatewayId} AND tool_name = #{toolName}")
+    int updateDescriptionAndProtocolId(@Param("gatewayId") String gatewayId, @Param("toolName") String toolName,
+                                       @Param("toolDescription") String toolDescription, @Param("protocolId") Long protocolId);
+
     @Delete("DELETE FROM mcp_gateway_tool WHERE tool_id = #{toolId}")
     int deleteByToolId(Long toolId);
 }

@@ -1,6 +1,7 @@
 package com.hao.ai.trigger.http;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.hao.ai.api.response.Response;
 import com.hao.ai.domain.protocol.model.entity.AnalysisCommandEntity;
 import com.hao.ai.domain.protocol.model.valobj.http.HTTPProtocolVO;
@@ -12,6 +13,11 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -231,60 +237,7 @@ public class AdminController {
             AnalysisCommandEntity command = AnalysisCommandEntity.builder()
                     .openApiJson(openApiJson).endpoints(endpoints).build();
             List<HTTPProtocolVO> protocols = protocalAnalysis.doAnalysis(command);
-
-            List<String> created = new ArrayList<>();
-            List<String> skipped = new ArrayList<>();
-
-            for (HTTPProtocolVO protocol : protocols) {
-                String toolName = protocol.getToolName();
-                if (null == toolName || toolName.trim().isEmpty()) {
-                    skipped.add(protocol.getHttpUrl() + "(无法生成工具名)");
-                    continue;
-                }
-                // 同网关同名工具已存在则跳过
-                if (null != toolDao.queryByGatewayIdAndToolName(gatewayId, toolName)) {
-                    skipped.add(toolName);
-                    continue;
-                }
-
-                // 存 HTTP 协议配置
-                Long protocolId = System.currentTimeMillis();
-                ProtocolHttpPO httpPo = new ProtocolHttpPO();
-                httpPo.setProtocolId(protocolId);
-                httpPo.setHttpUrl(protocol.getHttpUrl());
-                httpPo.setHttpMethod(protocol.getHttpMethod());
-                httpPo.setHttpHeaders(protocol.getHttpHeaders());
-                httpPo.setTimeout(protocol.getTimeout());
-                httpPo.setRetryTimes(0);
-                protocolHttpDao.insert(httpPo);
-
-                List<ProtocolMappingPO> mappingPOs = protocol.getMappings().stream()
-                        .map(m -> convertMappingToPO(m, protocolId)).collect(Collectors.toList());
-                if (!mappingPOs.isEmpty()) {
-                    protocolMappingDao.batchInsert(mappingPOs);
-                }
-
-                // 创建工具绑定网关
-                ToolPO toolPo = new ToolPO();
-                toolPo.setGatewayId(gatewayId);
-                toolPo.setToolName(toolName);
-                toolPo.setToolDescription(protocol.getToolDescription());
-                toolPo.setToolType("function");
-                toolPo.setToolVersion("1.0.0");
-                toolPo.setProtocolId(protocolId);
-                toolPo.setProtocolType("http");
-                toolPo.setToolId(System.currentTimeMillis());
-                toolDao.insert(toolPo);
-                created.add(toolName);
-                log.info("import-bind 创建工具 gatewayId:{} toolName:{} protocolId:{}", gatewayId, toolName, protocolId);
-
-                // 避免 protocolId/toolId 同毫秒重复
-                try { Thread.sleep(2); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-            }
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("created", created);
-            result.put("skipped", skipped);
+            Map<String, Object> result = doImportBind(gatewayId, protocols);
             return Response.<Map<String, Object>>builder().code(SUCCESS_CODE).info(SUCCESS_INFO).data(result).build();
         } catch (AppException e) {
             return Response.<Map<String, Object>>builder().code(e.getCode()).info(e.getInfo()).build();
@@ -292,6 +245,219 @@ public class AdminController {
             log.error("import-bind 失败", e);
             return Response.<Map<String, Object>>builder().code("0001").info("导入失败：" + e.getMessage()).build();
         }
+    }
+
+    /**
+     * 按服务 URL 自动导入：后端探测 OpenAPI 端点 → 抓取 → 解析 → 建工具绑定网关。
+     * <p>
+     * 入参：{ "gatewayId": "pm-dashboard", "serviceUrl": "http://xxx:8000" }
+     * serviceUrl 支持两种形式：
+     *  - 服务根地址（如 http://xxx:8000），后端自动按约定探测 OpenAPI 端点；
+     *  - 完整 OpenAPI 地址（以 openapi.json / swagger.json / api-docs 结尾），直接抓取。
+     */
+    @PostMapping("/protocol/import-bind-from-url")
+    public Response<Map<String, Object>> importBindFromUrl(@RequestBody Map<String, Object> body) {
+        String gatewayId = (String) body.get("gatewayId");
+        String serviceUrl = (String) body.get("serviceUrl");
+
+        if (null == gatewayId || gatewayId.trim().isEmpty()) {
+            return Response.<Map<String, Object>>builder().code("0002").info("请选择目标网关").build();
+        }
+        if (null == serviceUrl || serviceUrl.trim().isEmpty()) {
+            return Response.<Map<String, Object>>builder().code("0002").info("请填写服务地址").build();
+        }
+
+        try {
+            String openApiJson = fetchOpenApiJson(serviceUrl.trim());
+            AnalysisCommandEntity command = AnalysisCommandEntity.builder()
+                    .openApiJson(openApiJson).endpoints(null).build();
+            List<HTTPProtocolVO> protocols = protocalAnalysis.doAnalysis(command);
+            Map<String, Object> result = doImportBind(gatewayId, protocols);
+            return Response.<Map<String, Object>>builder().code(SUCCESS_CODE).info(SUCCESS_INFO).data(result).build();
+        } catch (AppException e) {
+            return Response.<Map<String, Object>>builder().code(e.getCode()).info(e.getInfo()).build();
+        } catch (Exception e) {
+            log.error("import-bind-from-url 失败 gatewayId:{} serviceUrl:{}", gatewayId, serviceUrl, e);
+            return Response.<Map<String, Object>>builder().code("0001").info("导入失败：" + e.getMessage()).build();
+        }
+    }
+
+    /**
+     * 落库（upsert）：遍历解析出的协议，逐个写入 HTTP 配置 + 参数映射 + 工具绑定网关。
+     * <p>
+     * - 同名工具不存在 → 新建工具（created）；
+     * - 同名工具已存在 → 复用旧 protocolId，更新 http 配置、重建参数映射、更新工具描述（updated），
+     *   避免工具端改动后网关侧仍是旧配置。
+     */
+    private Map<String, Object> doImportBind(String gatewayId, List<HTTPProtocolVO> protocols) {
+        List<String> created = new ArrayList<>();
+        List<String> updated = new ArrayList<>();
+        List<String> skipped = new ArrayList<>();
+
+        for (HTTPProtocolVO protocol : protocols) {
+            String toolName = protocol.getToolName();
+            if (null == toolName || toolName.trim().isEmpty()) {
+                skipped.add(protocol.getHttpUrl() + "(无法生成工具名)");
+                continue;
+            }
+
+            ToolPO existing = toolDao.queryByGatewayIdAndToolName(gatewayId, toolName);
+            if (null != existing) {
+                // ===== 更新分支：复用旧 protocolId，同步最新配置 =====
+                Long protocolId = existing.getProtocolId();
+
+                // 1. 更新 HTTP 协议配置
+                ProtocolHttpPO httpPo = new ProtocolHttpPO();
+                httpPo.setProtocolId(protocolId);
+                httpPo.setHttpUrl(protocol.getHttpUrl());
+                httpPo.setHttpMethod(protocol.getHttpMethod());
+                httpPo.setHttpHeaders(protocol.getHttpHeaders());
+                httpPo.setTimeout(protocol.getTimeout());
+                protocolHttpDao.updateByProtocolId(httpPo);
+
+                // 2. 重建参数映射：删旧插新
+                protocolMappingDao.deleteByProtocolId(protocolId);
+                List<ProtocolMappingPO> mappingPOs = protocol.getMappings().stream()
+                        .map(m -> convertMappingToPO(m, protocolId)).collect(Collectors.toList());
+                if (!mappingPOs.isEmpty()) {
+                    protocolMappingDao.batchInsert(mappingPOs);
+                }
+
+                // 3. 更新工具描述（协议 ID 不变）
+                toolDao.updateDescriptionAndProtocolId(gatewayId, toolName, protocol.getToolDescription(), protocolId);
+                updated.add(toolName);
+                log.info("import-bind 更新工具 gatewayId:{} toolName:{} protocolId:{}", gatewayId, toolName, protocolId);
+                continue;
+            }
+
+            // ===== 新建分支 =====
+            Long protocolId = System.currentTimeMillis();
+            ProtocolHttpPO httpPo = new ProtocolHttpPO();
+            httpPo.setProtocolId(protocolId);
+            httpPo.setHttpUrl(protocol.getHttpUrl());
+            httpPo.setHttpMethod(protocol.getHttpMethod());
+            httpPo.setHttpHeaders(protocol.getHttpHeaders());
+            httpPo.setTimeout(protocol.getTimeout());
+            httpPo.setRetryTimes(0);
+            protocolHttpDao.insert(httpPo);
+
+            List<ProtocolMappingPO> mappingPOs = protocol.getMappings().stream()
+                    .map(m -> convertMappingToPO(m, protocolId)).collect(Collectors.toList());
+            if (!mappingPOs.isEmpty()) {
+                protocolMappingDao.batchInsert(mappingPOs);
+            }
+
+            // 创建工具绑定网关
+            ToolPO toolPo = new ToolPO();
+            toolPo.setGatewayId(gatewayId);
+            toolPo.setToolName(toolName);
+            toolPo.setToolDescription(protocol.getToolDescription());
+            toolPo.setToolType("function");
+            toolPo.setToolVersion("1.0.0");
+            toolPo.setProtocolId(protocolId);
+            toolPo.setProtocolType("http");
+            toolPo.setToolId(System.currentTimeMillis());
+            toolDao.insert(toolPo);
+            created.add(toolName);
+            log.info("import-bind 创建工具 gatewayId:{} toolName:{} protocolId:{}", gatewayId, toolName, protocolId);
+
+            // 避免 protocolId/toolId 同毫秒重复
+            try { Thread.sleep(2); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("created", created);
+        result.put("updated", updated);
+        result.put("skipped", skipped);
+        return result;
+    }
+
+    /** OpenAPI 端点探测优先级：网关专用文档 → 标准 OpenAPI → Swagger 端点 */
+    private static final List<String> OPENAPI_PROBE_PATHS = List.of(
+            "/api/tools/openapi.json",
+            "/openapi.json",
+            "/v3/api-docs",
+            "/v2/api-docs",
+            "/swagger/v1/swagger.json",
+            "/api-docs"
+    );
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+    /**
+     * 抓取 OpenAPI JSON：校验 SSRF 目标 → 探测/直取 → 校验返回为 OpenAPI 文档。
+     */
+    private String fetchOpenApiJson(String serviceUrl) throws Exception {
+        // SSRF 防护：仅允许 http/https，拒绝云元数据等危险地址
+        URI uri = validateAndParseUrl(serviceUrl);
+
+        // 若 URL 本身指向文档文件（openapi.json / swagger.json / api-docs），直接抓取
+        String path = uri.getPath() != null ? uri.getPath() : "";
+        if (path.endsWith(".json") || path.contains("api-docs") || path.contains("swagger")) {
+            return fetchJson(uri.toString());
+        }
+
+        // 否则按约定探测 OpenAPI 端点
+        String base = serviceUrl.replaceAll("/+$", "");
+        String lastError = "";
+        for (String probe : OPENAPI_PROBE_PATHS) {
+            String url = base + probe;
+            try {
+                String body = fetchJson(url);
+                JSONObject obj = JSON.parseObject(body);
+                if (obj != null && (obj.containsKey("paths") || obj.containsKey("openapi") || obj.containsKey("swagger"))) {
+                    log.info("探测到 OpenAPI 端点:{}", url);
+                    return body;
+                }
+            } catch (Exception e) {
+                lastError = e.getMessage();
+            }
+        }
+        throw new AppException("无法从 " + base + " 自动发现 OpenAPI（最后错误：" + lastError + "），请改用 /protocol/import-bind 手动粘贴 JSON");
+    }
+
+    /**
+     * 校验 URL 并解析为 URI，防止 SSRF。
+     * 说明：本网关工具场景下服务多部署于内网（如 21.*、devcloud 域名），故允许内网地址；
+     * 仅做基础防护：限制协议为 http/https、拒绝云元数据地址与空主机。
+     */
+    private URI validateAndParseUrl(String url) {
+        URI uri;
+        try {
+            uri = URI.create(url);
+        } catch (Exception e) {
+            throw new AppException("服务地址格式非法");
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))) {
+            throw new AppException("仅支持 http/https 协议的服务地址");
+        }
+        String host = uri.getHost();
+        if (host == null || host.isEmpty()) {
+            throw new AppException("服务地址缺少主机名");
+        }
+        // 拒绝云元数据 / 链路本地地址，防止被用于读取实例凭据
+        if ("169.254.169.254".equals(host) || "metadata.google.internal".equals(host)
+                || host.equals("127.0.0.1") || host.equals("localhost")) {
+            throw new AppException("禁止访问该地址");
+        }
+        return uri;
+    }
+
+    private String fetchJson(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(15))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            throw new AppException("抓取失败 HTTP " + response.statusCode() + "：" + url);
+        }
+        return response.body();
     }
 
     @GetMapping("/protocol/list")

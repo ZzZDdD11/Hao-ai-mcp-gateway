@@ -407,6 +407,12 @@ tr:hover td { background: var(--bg-hover); }
   margin-top: 6px;
 }
 
+.form-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 18px 0;
+}
+
 /* ====== 空状态 ====== */
 .empty-state {
   text-align: center;
@@ -644,10 +650,19 @@ function renderProtocol() {
         <div class="form-group">
           <label class="form-label">目标网关</label>
           <select class="form-input" id="proto-gateway"></select>
-          <div class="form-hint">导入的协议将自动创建工具并绑定到该网关</div>
+          <div class="form-hint">导入的协议将自动创建/更新工具并绑定到该网关</div>
         </div>
         <div class="form-group">
-          <label class="form-label">OpenAPI / Swagger JSON</label>
+          <label class="form-label">快速导入（填服务地址）</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="proto-url" placeholder="http://服务地址:8000（自动探测 OpenAPI）" style="flex:1">
+            <button class="btn btn-primary" onclick="importBindFromUrl()">URL 直接导入</button>
+          </div>
+          <div class="form-hint">只需填服务根地址，自动发现 OpenAPI 并导入；已存在的同名工具会更新为最新配置</div>
+        </div>
+        <div class="form-divider"></div>
+        <div class="form-group">
+          <label class="form-label">手动导入（粘 OpenAPI / Swagger JSON）</label>
           <textarea class="form-textarea" id="proto-json" placeholder='{"openapi":"3.0.0","servers":[{"url":"http://localhost:8000"}],"paths":{"/api/dashboard":{"get":{...}}},"components":{"schemas":{...}}}'></textarea>
           <div class="form-hint">粘贴完整的 OpenAPI 3.0 JSON，需包含 servers / paths / components.schemas</div>
         </div>
@@ -655,8 +670,8 @@ function renderProtocol() {
         <button class="btn btn-primary" id="proto-import-btn" onclick="importBindProtocol()" style="display:none;margin-left:8px">② 导入并创建工具</button>
       </div>
       <div>
-        <label class="form-label">接口列表（勾选要导入的）</label>
-        <div class="import-preview" id="proto-preview">点击"解析接口"后，此处自动列出所有可导入接口</div>
+        <label class="form-label">导入结果</label>
+        <div class="import-preview" id="proto-preview">填服务地址点「URL 直接导入」，或粘贴 JSON 点「解析接口」后导入</div>
       </div>
     </div>
   `;
@@ -737,14 +752,7 @@ async function importBindProtocol() {
     }).then(r => r.json());
 
     if (res.code === '0000') {
-      const created = (res.data && res.data.created) || [];
-      const skipped = (res.data && res.data.skipped) || [];
-      toast(`成功创建 ${created.length} 个工具` + (skipped.length ? `，跳过 ${skipped.length} 个重复` : ''));
-      preview.innerHTML =
-        `<span style="color:var(--teal)">✓ 已创建并绑定到网关 ${gatewayId}</span><br><br>` +
-        created.map(n => `<span class="mono" style="color:var(--accent)">✓ ${n}</span>`).join('<br>') +
-        (skipped.length ? `<br><br><span style="color:var(--text-secondary)">跳过（已存在）：${skipped.join(', ')}</span>` : '') +
-        `<br><br>已可在 MCP 端点 <span class="mono">…:8080/${gatewayId}/mcp</span> 使用`;
+      renderImportResult(gatewayId, res.data || {});
     } else {
       preview.innerHTML = `<span style="color:var(--danger)">✗ ${res.info || '导入失败'}</span>`;
       toast(res.info || '导入失败', 'error');
@@ -753,6 +761,47 @@ async function importBindProtocol() {
     preview.innerHTML = `<span style="color:var(--danger)">导入异常：${e.message}</span>`;
     toast(e.message, 'error');
   }
+}
+
+// ====== URL 直接导入 ======
+async function importBindFromUrl() {
+  const gatewayId = document.getElementById('proto-gateway').value;
+  if (!gatewayId) { toast('请选择目标网关', 'error'); return; }
+  const serviceUrl = document.getElementById('proto-url').value.trim();
+  if (!serviceUrl) { toast('请填写服务地址', 'error'); return; }
+
+  const preview = document.getElementById('proto-preview');
+  preview.innerHTML = '导入中（自动探测 OpenAPI 并导入/更新）...';
+  try {
+    const res = await fetch(`${API}/api/admin/protocol/import-bind-from-url`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gatewayId, serviceUrl })
+    }).then(r => r.json());
+
+    if (res.code === '0000') {
+      renderImportResult(gatewayId, res.data || {});
+    } else {
+      preview.innerHTML = `<span style="color:var(--danger)">✗ ${res.info || '导入失败'}</span>`;
+      toast(res.info || '导入失败', 'error');
+    }
+  } catch(e) {
+    preview.innerHTML = `<span style="color:var(--danger)">导入异常：${e.message}</span>`;
+    toast(e.message, 'error');
+  }
+}
+
+function renderImportResult(gatewayId, data) {
+  const created = data.created || [];
+  const updated = data.updated || [];
+  const skipped = data.skipped || [];
+  const preview = document.getElementById('proto-preview');
+  toast(`创建 ${created.length} 个、更新 ${updated.length} 个` + (skipped.length ? `、跳过 ${skipped.length} 个` : ''));
+  preview.innerHTML =
+    `<span style="color:var(--teal)">✓ 已导入到网关 ${gatewayId}</span><br><br>` +
+    (created.length ? `<span style="color:var(--text-secondary)">新建：</span><br>` + created.map(n => `<span class="mono" style="color:var(--accent)">＋ ${n}</span>`).join('<br>') + '<br><br>' : '') +
+    (updated.length ? `<span style="color:var(--text-secondary)">更新（同步最新配置）：</span><br>` + updated.map(n => `<span class="mono" style="color:var(--teal)">↻ ${n}</span>`).join('<br>') + '<br><br>' : '') +
+    (skipped.length ? `<span style="color:var(--text-secondary)">跳过（无法生成工具名）：${skipped.join(', ')}</span><br><br>` : '') +
+    `已可在 MCP 端点 <span class="mono">…:8080/${gatewayId}/mcp</span> 使用`;
 }
 
 // ====== 工具管理 ======

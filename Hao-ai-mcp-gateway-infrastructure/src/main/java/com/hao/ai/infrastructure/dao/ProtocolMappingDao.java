@@ -19,4 +19,7 @@ public interface ProtocolMappingDao {
             "</foreach>" +
             "</script>")
     int batchInsert(@Param("list") List<ProtocolMappingPO> list);
+
+    @Delete("DELETE FROM mcp_protocol_mapping WHERE protocol_id = #{protocolId}")
+    int deleteByProtocolId(@Param("protocolId") Long protocolId);
 }
