@@ -23,6 +23,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class McpCoreHandlerImpl implements IMcpCoreHandler {
 
+    /** 鉴权失败错误码：供 transport 层识别并返回 HTTP 401 */
+    public static final String AUTH_FAILED_CODE = "AUTH_FAILED";
+
     @Resource
     private IAuthRateLimitService authRateLimitService;
 
@@ -38,7 +41,7 @@ public class McpCoreHandlerImpl implements IMcpCoreHandler {
         // 0. 鉴权：校验 api_key（网关未开强校验时 checkLicense 内部直接放行，向后兼容）
         if (!authLicenseService.checkLicense(new LicenseCommandEntity(gatewayId, apiKey))) {
             log.warn("核心处理鉴权失败 gatewayId:{} apiKey:{}", gatewayId, apiKey);
-            throw new AppException("api_key 鉴权失败");
+            throw new AppException(AUTH_FAILED_CODE, "api_key 鉴权失败");
         }
 
         // 1. 限流：仅 tools/call 命中限流（与 RootNode 逻辑一致）
@@ -50,7 +53,7 @@ public class McpCoreHandlerImpl implements IMcpCoreHandler {
                         new RateLimitCommandEntity(gatewayId, apiKey));
                 if (hit) {
                     log.warn("核心处理命中限流 gatewayId:{} apiKey:{}", gatewayId, apiKey);
-                    throw new AppException("fail to auth apikey rateLimiter");
+                    throw new AppException("RATE_LIMITED", "fail to auth apikey rateLimiter");
                 }
             }
         }

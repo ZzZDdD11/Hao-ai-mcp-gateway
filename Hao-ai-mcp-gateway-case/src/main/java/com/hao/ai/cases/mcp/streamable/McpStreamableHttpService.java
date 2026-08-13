@@ -7,9 +7,11 @@ import com.hao.ai.domain.session.IMcpCoreHandler;
 import com.hao.ai.domain.session.ISessionManagementService;
 import com.hao.ai.domain.session.model.valobj.McpSchemaVO;
 import com.hao.ai.domain.session.model.valobj.SessionVO;
+import com.hao.ai.domain.session.service.McpCoreHandlerImpl;
 import com.hao.ai.types.exception.AppException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -58,6 +60,12 @@ public class McpStreamableHttpService implements IMcpStreamableHttpService {
                     buildErrorResponse(requestId, -32600, "Invalid Request"));
 
         } catch (AppException e) {
+            // 鉴权失败 → HTTP 401（避免被扫描器误判为"无鉴权"）
+            if (McpCoreHandlerImpl.AUTH_FAILED_CODE.equals(e.getCode())) {
+                log.warn("Streamable HTTP 鉴权失败 gatewayId:{} {}", gatewayId, e.getInfo());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED.value()).body(
+                        buildErrorResponse(requestId, -32001, e.getInfo()));
+            }
             // 限流等业务异常 → JSON-RPC error（HTTP 200，错误在 body 里）
             log.warn("Streamable HTTP 业务异常 gatewayId:{} {}", gatewayId, e.getMessage());
             return ResponseEntity.ok().body(
