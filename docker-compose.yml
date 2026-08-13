@@ -8,10 +8,9 @@ services:
     restart: always
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: "12345678"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
       MYSQL_DATABASE: ai_mcp_gateway_v2
-    ports:
-      - "3306:3306"
+    # 不对外暴露 3306 端口，仅容器内部网络(mcp-net)可达，app 通过服务名 mysql 访问
     volumes:
       - ./docs/dev-ops/mysql/sql:/docker-entrypoint-initdb.d:ro
     healthcheck:
@@ -34,11 +33,12 @@ services:
         condition: service_healthy
     environment:
       TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
       PARAMS: >-
         --spring.profiles.active=dev
         --spring.datasource.url=jdbc:mysql://mysql:3306/ai_mcp_gateway_v2
         --spring.datasource.username=root
-        --spring.datasource.password=12345678
+        --spring.datasource.password=${MYSQL_ROOT_PASSWORD}
     ports:
       - "8080:8092"
     networks:

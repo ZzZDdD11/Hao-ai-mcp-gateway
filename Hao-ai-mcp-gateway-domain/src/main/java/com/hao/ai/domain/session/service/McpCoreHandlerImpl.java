@@ -1,6 +1,8 @@
 package com.hao.ai.domain.session.service;
 
+import com.hao.ai.domain.auth.IAuthLicenseService;
 import com.hao.ai.domain.auth.IAuthRateLimitService;
+import com.hao.ai.domain.auth.model.entity.LicenseCommandEntity;
 import com.hao.ai.domain.auth.model.entity.RateLimitCommandEntity;
 import com.hao.ai.domain.session.IMcpCoreHandler;
 import com.hao.ai.domain.session.ISessionMessageService;
@@ -25,11 +27,20 @@ public class McpCoreHandlerImpl implements IMcpCoreHandler {
     private IAuthRateLimitService authRateLimitService;
 
     @Resource
+    private IAuthLicenseService authLicenseService;
+
+    @Resource
     private ISessionMessageService sessionMessageService;
 
     @Override
     public McpSchemaVO.JSONRPCResponse handle(String gatewayId, String apiKey,
                                               McpSchemaVO.JSONRPCMessage message) {
+        // 0. 鉴权：校验 api_key（网关未开强校验时 checkLicense 内部直接放行，向后兼容）
+        if (!authLicenseService.checkLicense(new LicenseCommandEntity(gatewayId, apiKey))) {
+            log.warn("核心处理鉴权失败 gatewayId:{} apiKey:{}", gatewayId, apiKey);
+            throw new AppException("api_key 鉴权失败");
+        }
+
         // 1. 限流：仅 tools/call 命中限流（与 RootNode 逻辑一致）
         if (message instanceof McpSchemaVO.JSONRPCRequest request) {
             String method = request.method();

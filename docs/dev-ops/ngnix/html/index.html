@@ -642,52 +642,117 @@ function renderProtocol() {
     <div class="import-area">
       <div>
         <div class="form-group">
-          <label class="form-label">OpenAPI / Swagger JSON</label>
-          <textarea class="form-textarea" id="proto-json" placeholder='{"openapi":"3.0.0","servers":[{"url":"http://localhost:8000"}],"paths":{"/api/dashboard":{"post":{...}}},"components":{"schemas":{...}}}'></textarea>
-          <div class="form-hint">粘贴完整的 OpenAPI 3.0 JSON，需包含 servers / paths / components.schemas</div>
+          <label class="form-label">目标网关</label>
+          <select class="form-input" id="proto-gateway"></select>
+          <div class="form-hint">导入的协议将自动创建工具并绑定到该网关</div>
         </div>
         <div class="form-group">
-          <label class="form-label">导入的 endpoints（逗号分隔）</label>
-          <input class="form-input" id="proto-endpoints" placeholder="/api/dashboard, /api/stage6/timeseries">
-          <div class="form-hint">指定要导入的接口路径，多个用逗号分隔</div>
+          <label class="form-label">OpenAPI / Swagger JSON</label>
+          <textarea class="form-textarea" id="proto-json" placeholder='{"openapi":"3.0.0","servers":[{"url":"http://localhost:8000"}],"paths":{"/api/dashboard":{"get":{...}}},"components":{"schemas":{...}}}'></textarea>
+          <div class="form-hint">粘贴完整的 OpenAPI 3.0 JSON，需包含 servers / paths / components.schemas</div>
         </div>
-        <button class="btn btn-primary" onclick="importProtocol()">解析并导入</button>
+        <button class="btn btn-primary" onclick="parseProtocol()">① 解析接口</button>
+        <button class="btn btn-primary" id="proto-import-btn" onclick="importBindProtocol()" style="display:none;margin-left:8px">② 导入并创建工具</button>
       </div>
       <div>
-        <label class="form-label">解析预览</label>
-        <div class="import-preview" id="proto-preview">导入后此处显示解析结果（url / method / 参数映射）</div>
+        <label class="form-label">接口列表（勾选要导入的）</label>
+        <div class="import-preview" id="proto-preview">点击"解析接口"后，此处自动列出所有可导入接口</div>
       </div>
     </div>
   `;
+  loadProtocolGateways();
 }
 
-async function importProtocol() {
-  const jsonStr = document.getElementById('proto-json').value.trim();
-  const endpointsStr = document.getElementById('proto-endpoints').value.trim();
-  if (!jsonStr) { toast('请粘贴 OpenAPI JSON', 'error'); return; }
-  if (!endpointsStr) { toast('请填写 endpoints', 'error'); return; }
+async function loadProtocolGateways() {
+  const sel = document.getElementById('proto-gateway');
+  try {
+    const res = await fetch(`${API}/api/admin/gateway/list`).then(r => r.json());
+    sel.innerHTML = '<option value="">请选择网关</option>' +
+      (res.data || []).map(g => `<option value="${g.gatewayId}">${g.gatewayId}（${g.gatewayName}）</option>`).join('');
+  } catch(e) { sel.innerHTML = '<option value="">网关加载失败</option>'; }
+}
 
+function extractEndpoint(httpUrl) {
+  try { return new URL(httpUrl).pathname; } catch(e) { return httpUrl; }
+}
+
+async function parseProtocol() {
+  const jsonStr = document.getElementById('proto-json').value.trim();
+  if (!jsonStr) { toast('请粘贴 OpenAPI JSON', 'error'); return; }
   let openApiJson;
   try { openApiJson = JSON.parse(jsonStr); }
   catch(e) { toast('JSON 格式错误：' + e.message, 'error'); return; }
 
-  const endpoints = endpointsStr.split(',').map(s => s.trim()).filter(Boolean);
-
+  const preview = document.getElementById('proto-preview');
+  preview.innerHTML = '解析中...';
   try {
-    const res = await fetch(`${API}/api/admin/protocol/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ openApiJson, endpoints })
+    const res = await fetch(`${API}/api/admin/protocol/parse`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ openApiJson })
     }).then(r => r.json());
 
-    if (res.code === '0000' && res.data) {
-      toast(`导入成功，生成 ${res.data.length} 个协议`);
-      document.getElementById('proto-preview').innerHTML =
-        `<span style="color:var(--teal)">✓ 解析完成</span><br>protocolIds: ${res.data.map(id => `<span class="mono" style="color:var(--accent)">${id}</span>`).join(', ')}<br><br>接下来到「工具管理」将协议绑定为 MCP 工具`;
+    if (res.code !== '0000') {
+      preview.innerHTML = `<span style="color:var(--danger)">✗ ${res.info || '解析失败'}</span>`;
+      toast(res.info || '解析失败', 'error');
+      return;
+    }
+    const list = res.data || [];
+    if (list.length === 0) {
+      preview.innerHTML = '<span style="color:var(--danger)">未解析到任何接口</span>';
+      return;
+    }
+    preview.innerHTML = list.map(p => `
+      <div style="margin-bottom:8px">
+        <label style="cursor:pointer">
+          <input type="checkbox" class="proto-check" data-endpoint="${extractEndpoint(p.httpUrl)}" checked>
+          <span class="mono" style="color:var(--accent)">${p.toolName}</span>
+          <span style="color:var(--text-secondary)">[${p.httpMethod}]</span>
+          <div style="color:var(--text-secondary);font-size:12px;margin-left:20px">${extractEndpoint(p.httpUrl)} ${p.toolDescription ? '· ' + p.toolDescription : ''}</div>
+        </label>
+      </div>`).join('');
+    document.getElementById('proto-import-btn').style.display = 'inline-block';
+    toast(`解析成功，共 ${list.length} 个接口`);
+  } catch(e) {
+    preview.innerHTML = `<span style="color:var(--danger)">解析异常：${e.message}</span>`;
+  }
+}
+
+async function importBindProtocol() {
+  const gatewayId = document.getElementById('proto-gateway').value;
+  if (!gatewayId) { toast('请选择目标网关', 'error'); return; }
+  const jsonStr = document.getElementById('proto-json').value.trim();
+  let openApiJson;
+  try { openApiJson = JSON.parse(jsonStr); }
+  catch(e) { toast('JSON 格式错误：' + e.message, 'error'); return; }
+
+  const endpoints = Array.from(document.querySelectorAll('.proto-check:checked')).map(c => c.dataset.endpoint);
+  if (endpoints.length === 0) { toast('请至少勾选一个接口', 'error'); return; }
+
+  const preview = document.getElementById('proto-preview');
+  preview.innerHTML = '导入中...';
+  try {
+    const res = await fetch(`${API}/api/admin/protocol/import-bind`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gatewayId, openApiJson, endpoints })
+    }).then(r => r.json());
+
+    if (res.code === '0000') {
+      const created = (res.data && res.data.created) || [];
+      const skipped = (res.data && res.data.skipped) || [];
+      toast(`成功创建 ${created.length} 个工具` + (skipped.length ? `，跳过 ${skipped.length} 个重复` : ''));
+      preview.innerHTML =
+        `<span style="color:var(--teal)">✓ 已创建并绑定到网关 ${gatewayId}</span><br><br>` +
+        created.map(n => `<span class="mono" style="color:var(--accent)">✓ ${n}</span>`).join('<br>') +
+        (skipped.length ? `<br><br><span style="color:var(--text-secondary)">跳过（已存在）：${skipped.join(', ')}</span>` : '') +
+        `<br><br>已可在 MCP 端点 <span class="mono">…:8080/${gatewayId}/mcp</span> 使用`;
     } else {
+      preview.innerHTML = `<span style="color:var(--danger)">✗ ${res.info || '导入失败'}</span>`;
       toast(res.info || '导入失败', 'error');
     }
-  } catch(e) { toast(e.message, 'error'); }
+  } catch(e) {
+    preview.innerHTML = `<span style="color:var(--danger)">导入异常：${e.message}</span>`;
+    toast(e.message, 'error');
+  }
 }
 
 // ====== 工具管理 ======

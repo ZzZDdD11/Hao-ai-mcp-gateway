@@ -38,7 +38,7 @@ public class AuthRepository implements IAuthRepository {
 
     @Override
     public McpGatewayAuthVO queryEffectiveGatewayAuthInfo(LicenseCommandEntity commandEntity) {
-        AuthPO po = authDao.queryByApiKey(commandEntity.getApiKey());
+        AuthPO po = authDao.queryByGatewayIdAndApiKey(commandEntity.getGatewayId(), commandEntity.getApiKey());
         if (po == null) return null;
 
         return McpGatewayAuthVO.builder()

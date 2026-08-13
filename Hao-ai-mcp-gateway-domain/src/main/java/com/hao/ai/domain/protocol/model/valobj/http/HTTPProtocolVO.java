@@ -16,6 +16,12 @@ public class HTTPProtocolVO {
     private String httpMethod;
     private Integer timeout;
 
+    /** 自动生成的工具名称（取接口路径末段，如 /api/tools/query_bugs -> query_bugs） */
+    private String toolName;
+
+    /** 自动生成的工具描述（取 operation.summary，缺省用 operationId / method+path） */
+    private String toolDescription;
+
     private List<ProtocolMapping> mappings;
 
     @Data

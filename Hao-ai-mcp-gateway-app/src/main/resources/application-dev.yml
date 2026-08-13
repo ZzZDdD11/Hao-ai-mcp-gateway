@@ -16,7 +16,7 @@ thread:
 spring:
   datasource:
     username: root
-    password: 12345678
+    password: ${MYSQL_ROOT_PASSWORD:12345678}
     url: jdbc:mysql://mysql:3306/ai_mcp_gateway_v2
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:

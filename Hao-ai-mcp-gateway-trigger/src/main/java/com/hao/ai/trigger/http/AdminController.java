@@ -7,12 +7,14 @@ import com.hao.ai.domain.protocol.model.valobj.http.HTTPProtocolVO;
 import com.hao.ai.domain.protocol.service.IProtocolAnalysis;
 import com.hao.ai.infrastructure.dao.*;
 import com.hao.ai.infrastructure.dao.po.*;
+import com.hao.ai.types.exception.AppException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -179,6 +181,117 @@ public class AdminController {
         }
 
         return Response.<List<Long>>builder().code(SUCCESS_CODE).info(SUCCESS_INFO).data(protocolIds).build();
+    }
+
+    /**
+     * 仅解析 OpenAPI，不落库。返回接口清单（含自动生成的工具名/描述），供前端预览勾选。
+     */
+    @PostMapping("/protocol/parse")
+    public Response<List<Map<String, Object>>> parseProtocol(@RequestBody Map<String, Object> body) {
+        String openApiJson = JSON.toJSONString(body.get("openApiJson"));
+        @SuppressWarnings("unchecked")
+        List<String> endpoints = (List<String>) body.get("endpoints");
+        try {
+            AnalysisCommandEntity command = AnalysisCommandEntity.builder()
+                    .openApiJson(openApiJson).endpoints(endpoints).build();
+            List<HTTPProtocolVO> protocols = protocalAnalysis.doAnalysis(command);
+            List<Map<String, Object>> list = protocols.stream().map(p -> {
+                Map<String, Object> m = new HashMap<>();
+                m.put("httpUrl", p.getHttpUrl());
+                m.put("httpMethod", p.getHttpMethod());
+                m.put("toolName", p.getToolName());
+                m.put("toolDescription", p.getToolDescription());
+                return m;
+            }).collect(Collectors.toList());
+            return Response.<List<Map<String, Object>>>builder().code(SUCCESS_CODE).info(SUCCESS_INFO).data(list).build();
+        } catch (AppException e) {
+            return Response.<List<Map<String, Object>>>builder().code(e.getCode()).info(e.getInfo()).data(new ArrayList<>()).build();
+        } catch (Exception e) {
+            log.error("协议解析失败", e);
+            return Response.<List<Map<String, Object>>>builder().code("0001").info("解析失败：" + e.getMessage()).data(new ArrayList<>()).build();
+        }
+    }
+
+    /**
+     * 一键导入并绑定：解析 OpenAPI → 存协议 → 自动创建工具绑定到指定网关。
+     * 同网关下同名工具已存在则跳过（标记 skipped），不中断。
+     */
+    @PostMapping("/protocol/import-bind")
+    public Response<Map<String, Object>> importBindProtocol(@RequestBody Map<String, Object> body) {
+        String openApiJson = JSON.toJSONString(body.get("openApiJson"));
+        String gatewayId = (String) body.get("gatewayId");
+        @SuppressWarnings("unchecked")
+        List<String> endpoints = (List<String>) body.get("endpoints");
+
+        if (null == gatewayId || gatewayId.trim().isEmpty()) {
+            return Response.<Map<String, Object>>builder().code("0002").info("请选择目标网关").build();
+        }
+
+        try {
+            AnalysisCommandEntity command = AnalysisCommandEntity.builder()
+                    .openApiJson(openApiJson).endpoints(endpoints).build();
+            List<HTTPProtocolVO> protocols = protocalAnalysis.doAnalysis(command);
+
+            List<String> created = new ArrayList<>();
+            List<String> skipped = new ArrayList<>();
+
+            for (HTTPProtocolVO protocol : protocols) {
+                String toolName = protocol.getToolName();
+                if (null == toolName || toolName.trim().isEmpty()) {
+                    skipped.add(protocol.getHttpUrl() + "(无法生成工具名)");
+                    continue;
+                }
+                // 同网关同名工具已存在则跳过
+                if (null != toolDao.queryByGatewayIdAndToolName(gatewayId, toolName)) {
+                    skipped.add(toolName);
+                    continue;
+                }
+
+                // 存 HTTP 协议配置
+                Long protocolId = System.currentTimeMillis();
+                ProtocolHttpPO httpPo = new ProtocolHttpPO();
+                httpPo.setProtocolId(protocolId);
+                httpPo.setHttpUrl(protocol.getHttpUrl());
+                httpPo.setHttpMethod(protocol.getHttpMethod());
+                httpPo.setHttpHeaders(protocol.getHttpHeaders());
+                httpPo.setTimeout(protocol.getTimeout());
+                httpPo.setRetryTimes(0);
+                protocolHttpDao.insert(httpPo);
+
+                List<ProtocolMappingPO> mappingPOs = protocol.getMappings().stream()
+                        .map(m -> convertMappingToPO(m, protocolId)).collect(Collectors.toList());
+                if (!mappingPOs.isEmpty()) {
+                    protocolMappingDao.batchInsert(mappingPOs);
+                }
+
+                // 创建工具绑定网关
+                ToolPO toolPo = new ToolPO();
+                toolPo.setGatewayId(gatewayId);
+                toolPo.setToolName(toolName);
+                toolPo.setToolDescription(protocol.getToolDescription());
+                toolPo.setToolType("function");
+                toolPo.setToolVersion("1.0.0");
+                toolPo.setProtocolId(protocolId);
+                toolPo.setProtocolType("http");
+                toolPo.setToolId(System.currentTimeMillis());
+                toolDao.insert(toolPo);
+                created.add(toolName);
+                log.info("import-bind 创建工具 gatewayId:{} toolName:{} protocolId:{}", gatewayId, toolName, protocolId);
+
+                // 避免 protocolId/toolId 同毫秒重复
+                try { Thread.sleep(2); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("created", created);
+            result.put("skipped", skipped);
+            return Response.<Map<String, Object>>builder().code(SUCCESS_CODE).info(SUCCESS_INFO).data(result).build();
+        } catch (AppException e) {
+            return Response.<Map<String, Object>>builder().code(e.getCode()).info(e.getInfo()).build();
+        } catch (Exception e) {
+            log.error("import-bind 失败", e);
+            return Response.<Map<String, Object>>builder().code("0001").info("导入失败：" + e.getMessage()).build();
+        }
     }
 
     @GetMapping("/protocol/list")

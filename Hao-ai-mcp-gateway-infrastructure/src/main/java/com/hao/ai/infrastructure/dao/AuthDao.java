@@ -8,8 +8,8 @@ import java.util.List;
 @Mapper
 public interface AuthDao {
 
-    @Select("SELECT * FROM mcp_gateway_auth WHERE api_key = #{apiKey} AND status = 1")
-    AuthPO queryByApiKey(String apiKey);
+    @Select("SELECT * FROM mcp_gateway_auth WHERE gateway_id = #{gatewayId} AND api_key = #{apiKey} AND status = 1")
+    AuthPO queryByGatewayIdAndApiKey(@Param("gatewayId") String gatewayId, @Param("apiKey") String apiKey);
 
     @Select("SELECT * FROM mcp_gateway_auth WHERE gateway_id = #{gatewayId} AND status = 1 ORDER BY id DESC")
     List<AuthPO> queryByGatewayId(String gatewayId);
