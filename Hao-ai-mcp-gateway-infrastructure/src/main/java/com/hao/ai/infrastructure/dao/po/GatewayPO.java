@@ -15,6 +15,7 @@ public class GatewayPO {
     private String version;
     private Integer auth;
     private Integer status;
+    private String upstreamToken;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

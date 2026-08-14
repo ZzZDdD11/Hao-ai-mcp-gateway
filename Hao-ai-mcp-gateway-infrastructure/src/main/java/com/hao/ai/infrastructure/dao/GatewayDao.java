@@ -20,4 +20,7 @@ public interface GatewayDao {
 
     @Update("UPDATE mcp_gateway SET status = 0 WHERE gateway_id = #{gatewayId}")
     int updateStatusToDisabled(String gatewayId);
+
+    @Update("UPDATE mcp_gateway SET upstream_token = #{upstreamToken} WHERE gateway_id = #{gatewayId}")
+    int updateUpstreamToken(@Param("gatewayId") String gatewayId, @Param("upstreamToken") String upstreamToken);
 }

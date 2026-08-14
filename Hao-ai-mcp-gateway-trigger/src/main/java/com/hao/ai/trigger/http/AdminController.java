@@ -80,6 +80,19 @@ public class AdminController {
         return ok();
     }
 
+    /**
+     * 配置上游工具端鉴权 token。
+     * 导入工具时若网关配置了 token，会自动把 Authorization: Bearer <token> 写入 http_headers，
+     * 供转发调用上游服务时携带。
+     */
+    @PostMapping("/gateway/upstream-token")
+    public Response<Boolean> configUpstreamToken(@RequestParam("gatewayId") String gatewayId,
+                                                 @RequestParam("upstreamToken") String upstreamToken) {
+        gatewayDao.updateUpstreamToken(gatewayId, upstreamToken);
+        log.info("配置上游 token gatewayId:{}", gatewayId);
+        return ok();
+    }
+
     // ==================== 工具管理 ====================
 
     @GetMapping("/tool/list")
@@ -294,6 +307,10 @@ public class AdminController {
         List<String> updated = new ArrayList<>();
         List<String> skipped = new ArrayList<>();
 
+        // 网关配置的上游工具端 token，导入时注入 Authorization 头
+        GatewayPO gateway = gatewayDao.queryByGatewayId(gatewayId);
+        String upstreamToken = gateway != null ? gateway.getUpstreamToken() : null;
+
         for (HTTPProtocolVO protocol : protocols) {
             String toolName = protocol.getToolName();
             if (null == toolName || toolName.trim().isEmpty()) {
@@ -311,7 +328,7 @@ public class AdminController {
                 httpPo.setProtocolId(protocolId);
                 httpPo.setHttpUrl(protocol.getHttpUrl());
                 httpPo.setHttpMethod(protocol.getHttpMethod());
-                httpPo.setHttpHeaders(protocol.getHttpHeaders());
+                httpPo.setHttpHeaders(mergeUpstreamAuth(protocol.getHttpHeaders(), upstreamToken));
                 httpPo.setTimeout(protocol.getTimeout());
                 protocolHttpDao.updateByProtocolId(httpPo);
 
@@ -336,7 +353,7 @@ public class AdminController {
             httpPo.setProtocolId(protocolId);
             httpPo.setHttpUrl(protocol.getHttpUrl());
             httpPo.setHttpMethod(protocol.getHttpMethod());
-            httpPo.setHttpHeaders(protocol.getHttpHeaders());
+            httpPo.setHttpHeaders(mergeUpstreamAuth(protocol.getHttpHeaders(), upstreamToken));
             httpPo.setTimeout(protocol.getTimeout());
             httpPo.setRetryTimes(0);
             protocolHttpDao.insert(httpPo);
@@ -470,6 +487,26 @@ public class AdminController {
     }
 
     // ==================== 辅助方法 ====================
+
+    /**
+     * 把上游工具端 token 合并进请求头：若网关配置了 token，注入 Authorization: Bearer <token>。
+     * 保留原有的 Content-Type 等头。
+     */
+    private String mergeUpstreamAuth(String originalHeaders, String upstreamToken) {
+        JSONObject headers = new JSONObject();
+        if (null != originalHeaders && !originalHeaders.trim().isEmpty()) {
+            try {
+                headers = JSON.parseObject(originalHeaders);
+            } catch (Exception e) {
+                log.warn("解析 http_headers 失败，忽略原始头:{}", originalHeaders);
+                headers = new JSONObject();
+            }
+        }
+        if (null != upstreamToken && !upstreamToken.trim().isEmpty()) {
+            headers.put("Authorization", "Bearer " + upstreamToken.trim());
+        }
+        return JSON.toJSONString(headers);
+    }
 
     private ProtocolMappingPO convertMappingToPO(HTTPProtocolVO.ProtocolMapping m, Long protocolId) {
         ProtocolMappingPO po = new ProtocolMappingPO();
