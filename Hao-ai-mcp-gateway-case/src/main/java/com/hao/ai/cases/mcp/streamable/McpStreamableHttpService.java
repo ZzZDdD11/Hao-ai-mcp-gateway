@@ -102,12 +102,14 @@ public class McpStreamableHttpService implements IMcpStreamableHttpService {
                                                  McpSchemaVO.JSONRPCRequest request) {
         String method = request.method();
 
-        // initialize → 创建 Streamable HTTP 会话
+        // initialize → 先鉴权处理，通过后再创建会话（避免鉴权失败留下孤儿会话）
         if ("initialize".equals(method)) {
+            // coreHandler 内含 checkLicense，鉴权失败抛 AppException(AUTH_FAILED) → 401
+            McpSchemaVO.JSONRPCResponse response = coreHandler.handle(gatewayId, apiKey, request);
+
+            // 鉴权通过后才创建 Streamable HTTP 会话
             SessionVO session = sessionManagementService.createStreamableSession(gatewayId);
             String newSessionId = session.getSessionId();
-
-            McpSchemaVO.JSONRPCResponse response = coreHandler.handle(gatewayId, apiKey, request);
 
             // 响应头带 Mcp-Session-Id，客户端后续请求需携带
             return ResponseEntity.ok()

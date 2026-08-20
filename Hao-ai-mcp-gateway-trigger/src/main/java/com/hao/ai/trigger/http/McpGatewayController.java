@@ -5,6 +5,7 @@ import com.hao.ai.api.IMcpGatewayService;
 import com.hao.ai.api.response.Response;
 import com.hao.ai.cases.mcp.IMcpSessionService;
 import com.hao.ai.cases.mcp.IMcpStreamableHttpService;
+import com.hao.ai.domain.session.service.McpCoreHandlerImpl;
 import com.hao.ai.types.enums.ResponseCode;
 import com.hao.ai.types.exception.AppException;
 import io.micrometer.common.util.StringUtils;
@@ -14,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -59,6 +61,11 @@ public class McpGatewayController implements IMcpGatewayService {
 
             return mcpSessionService.CreateMcpSession(gatewayId, apiKey);
         } catch (AppException e) {
+            // 握手鉴权失败 → HTTP 401（不能以 200 返回 SSE 错误事件，否则扫描器会误判为无鉴权端点）
+            if (McpCoreHandlerImpl.AUTH_FAILED_CODE.equals(e.getCode())) {
+                log.warn("建立 MCP SSE 连接鉴权失败，gatewayId: {}", gatewayId);
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, e.getInfo());
+            }
             log.error("建立 MCP SSE 连接拒绝，gatewayId: {}", gatewayId, e);
             return Flux.just(ServerSentEvent.<String>builder()
                     .id(UUID.randomUUID().toString())
